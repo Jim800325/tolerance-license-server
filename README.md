@@ -11,6 +11,7 @@
 - `/` — 服务状态页
 - `/admin` — 授权管理后台占位页
 - `/api/health` — 健康检查 API
+- `/api/db-health` — Phase 2 Neon 数据库连接健康检查
 
 ### Local development
 
@@ -21,10 +22,10 @@ npm run dev
 
 ### Deployment
 
-连接本仓库到 Vercel，Framework Preset 使用 Next.js。当前阶段不需要任何环境变量。
+连接本仓库到 Vercel，Framework Preset 使用 Next.js。数据库凭据只通过 Vercel Environment Variables 提供，禁止提交到 Git。
 
-### Next phase
+### Phase 2
 
-Phase 2 将连接 Neon Postgres，并加入授权创建、有效期、设备数量、暂停/撤销、设备重置和管理员登录。
+Neon Postgres 接入正在实施。授权数据库结构、服务端授权码哈希与数据库健康检查代码均保留在独立 v7.0 授权服务器中，不修改稳定的 v6.1.7 计算逻辑。
 
-> 不要把 `.env`、Vercel Token、数据库密码或 `DATABASE_URL` 提交到 Git。
+> 不要把 `.env`、Vercel Token、数据库密码、`DATABASE_URL`、`LICENSE_PEPPER` 或其他密钥提交到 Git。
