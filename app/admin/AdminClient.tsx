@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 
-type License = { id:string; license_prefix:string; license_code:string|null; customer_note:string|null; status:string; expires_at:string|null; max_devices:number; active_devices:number; created_at:string; };
+type License = { id:string; license_prefix:string; license_code:string|null; customer_note:string|null; status:string; expires_at:string|null; max_devices:number; active_devices:number; features?:Record<string,unknown>|null; created_at:string; };
 
 export default function AdminClient() {
   const [licenses,setLicenses]=useState<License[]>([]);
@@ -49,7 +49,7 @@ export default function AdminClient() {
     const form=e.currentTarget;
     const fd=new FormData(form);
     try {
-      const r=await fetch('/api/admin/licenses',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({customerNote:fd.get('note'),maxDevices:Number(fd.get('maxDevices')),expiresAt:fd.get('expiresAt')||null})});
+      const r=await fetch('/api/admin/licenses',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({customerNote:fd.get('note'),maxDevices:Number(fd.get('maxDevices')),expiresAt:fd.get('expiresAt')||null,features:{completeScript:fd.get('completeScript')==='on'}})});
       const j=await r.json().catch(()=>({}));
       if(!r.ok){setMessage('创建失败：'+(j.error??('HTTP '+r.status)));return;}
       setMessage('授权码已创建：'+j.licenseCode);
@@ -69,6 +69,6 @@ export default function AdminClient() {
   if(!loggedIn)return <form className="adminForm" onSubmit={login}><h2>管理员登录</h2><label>管理员密码<input name="password" type="password" autoComplete="current-password" required/></label><button type="submit">登录</button>{message&&<p className="notice">{message}</p>}</form>;
 
   return <div className="adminPanel"><div className="adminTop"><h2>授权管理</h2><button className="secondary" onClick={logout}>退出</button></div>
-    <form className="adminForm" onSubmit={createLicense}><h3>创建授权码</h3><label>客户备注<input name="note" maxLength={500} placeholder="例如：客户 A / 订单号"/></label><label>设备上限<input name="maxDevices" type="number" min="1" max="100" defaultValue="1" required/></label><label>到期时间（可留空永久）<input name="expiresAt" type="datetime-local"/></label><button type="submit">生成授权码</button></form>
-    {message&&<p className="notice">{message}</p>}<div className="licenseList">{licenses.length===0?<p className="muted">暂无授权。</p>:licenses.map(x=><article className="licenseRow" key={x.id}><div><strong>{x.license_code??x.license_prefix+'••••（旧授权不可恢复）'}</strong><div className="muted">{x.customer_note||'无备注'}</div></div><div>状态：{x.status}<br/>设备：{x.active_devices}/{x.max_devices}<br/>到期：{x.expires_at?new Date(x.expires_at).toLocaleString():'永久'}</div><div className="rowActions">{x.status!=='active'&&<button onClick={()=>action(x.id,{status:'active'})}>恢复</button>}{x.status==='active'&&<button onClick={()=>action(x.id,{status:'paused'})}>暂停</button>}{x.status!=='revoked'&&<button className="danger" onClick={()=>action(x.id,{status:'revoked'})}>撤销</button>}<button className="secondary" onClick={()=>action(x.id,{action:'reset_devices'})}>重置设备</button><button className="danger" onClick={()=>remove(x.id,x.license_code)}>永久删除</button></div></article>)}</div></div>;
+    <form className="adminForm" onSubmit={createLicense}><h3>创建授权码</h3><label>客户备注<input name="note" maxLength={500} placeholder="例如：客户 A / 订单号"/></label><label>设备上限<input name="maxDevices" type="number" min="1" max="100" defaultValue="1" required/></label><label>到期时间（可留空永久）<input name="expiresAt" type="datetime-local"/></label><label><input name="completeScript" type="checkbox" defaultChecked/> 允许生成完整执行脚本</label><button type="submit">生成授权码</button></form>
+    {message&&<p className="notice">{message}</p>}<div className="licenseList">{licenses.length===0?<p className="muted">暂无授权。</p>:licenses.map(x=><article className="licenseRow" key={x.id}><div><strong>{x.license_code??x.license_prefix+'••••（旧授权不可恢复）'}</strong><div className="muted">{x.customer_note||'无备注'}</div></div><div>状态：{x.status}<br/>设备：{x.active_devices}/{x.max_devices}<br/>完整脚本：{x.features?.completeScript===false?'关闭':'开启'}<br/>到期：{x.expires_at?new Date(x.expires_at).toLocaleString():'永久'}</div><div className="rowActions"><button className="secondary" onClick={()=>action(x.id,{features:{...(x.features??{}),completeScript:x.features?.completeScript===false}})}>{x.features?.completeScript===false?'开启完整脚本':'关闭完整脚本'}</button>{x.status!=='active'&&<button onClick={()=>action(x.id,{status:'active'})}>恢复</button>}{x.status==='active'&&<button onClick={()=>action(x.id,{status:'paused'})}>暂停</button>}{x.status!=='revoked'&&<button className="danger" onClick={()=>action(x.id,{status:'revoked'})}>撤销</button>}<button className="secondary" onClick={()=>action(x.id,{action:'reset_devices'})}>重置设备</button><button className="danger" onClick={()=>remove(x.id,x.license_code)}>永久删除</button></div></article>)}</div></div>;
 }
