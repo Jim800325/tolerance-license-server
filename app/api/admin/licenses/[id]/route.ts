@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       await sql`INSERT INTO admin_audit_log (action, license_id) VALUES ('devices_reset', ${id})`;
       return NextResponse.json({ ok: true });
     }
-    const current = await sql`SELECT status, expires_at, max_devices, customer_note FROM licenses WHERE id = ${id}`;
+    const current = await sql`SELECT status, expires_at, max_devices, customer_note, features FROM licenses WHERE id = ${id}`;
     if (!current.length) return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
     const status = body?.status ?? current[0].status;
     if (!statuses.has(status)) return NextResponse.json({ ok: false, error: 'invalid_status' }, { status: 400 });
@@ -32,11 +32,13 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }
     }
     const note = body?.customerNote === undefined ? current[0].customer_note : String(body.customerNote).slice(0, 500) || null;
+    const currentFeatures=(current[0].features&&typeof current[0].features==='object')?current[0].features:{};
+    const features=body?.features===undefined?currentFeatures:{...currentFeatures,...body.features};
     const updated = await sql`UPDATE licenses SET status=${status}, expires_at=${expiresAt}, max_devices=${maxDevices},
-      customer_note=${note}, updated_at=NOW() WHERE id=${id}
-      RETURNING id, license_prefix, customer_note, status, expires_at, max_devices, updated_at`;
+      customer_note=${note}, features=${JSON.stringify(features)}::jsonb, updated_at=NOW() WHERE id=${id}
+      RETURNING id, license_prefix, customer_note, status, expires_at, max_devices, features, updated_at`;
     await sql`INSERT INTO admin_audit_log (action, license_id, details)
-      VALUES ('license_updated', ${id}, ${JSON.stringify({ status, expiresAt, maxDevices })}::jsonb)`;
+      VALUES ('license_updated', ${id}, ${JSON.stringify({ status, expiresAt, maxDevices, features })}::jsonb)`;
     return NextResponse.json({ ok: true, license: updated[0] });
   } catch (error) {
     console.error('Update license failed', error);
