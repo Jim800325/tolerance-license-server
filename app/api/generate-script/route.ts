@@ -47,10 +47,12 @@ export async function POST(request:NextRequest){
     const ih=hashInstallationId(installationId);
     if(ih!==payload.installationHash)return json({ok:false,error:'device_mismatch'},403);
     const sql=getDb();
-    const found=await sql`SELECT l.status,l.expires_at,d.id AS device_id FROM licenses l JOIN license_devices d ON d.license_id=l.id WHERE l.id=${payload.licenseId} AND d.installation_hash=${ih} AND d.revoked_at IS NULL LIMIT 1`;
+    const found=await sql`SELECT l.status,l.expires_at,l.features,d.id AS device_id FROM licenses l JOIN license_devices d ON d.license_id=l.id WHERE l.id=${payload.licenseId} AND d.installation_hash=${ih} AND d.revoked_at IS NULL LIMIT 1`;
     if(!found.length)return json({ok:false,error:'license_or_device_revoked'},403);
     const a=getLicenseAvailability(found[0].status as LicenseStatus,found[0].expires_at as string|null);
     if(!a.valid)return json({ok:false,error:a.reason},403);
+    const features=(found[0].features&&typeof found[0].features==='object')?found[0].features:{};
+    if((features as Record<string,unknown>).completeScript===false)return json({ok:false,error:'feature_not_enabled'},403);
     const safeRows:Row[]=rows.map((r:any)=>({keyCode:String(r?.keyCode??'').slice(0,100),data:String(r?.data??'').slice(0,500),claimed:String(r?.claimed??'--').slice(0,200),spec:String(r?.spec??'').slice(0,500),min:String(r?.min??'').slice(0,500),max:String(r?.max??'').slice(0,500),unit:String(r?.unit??'').slice(0,50),approval:String(r?.approval??'').slice(0,200)}));
     await sql`UPDATE license_devices SET last_seen_at=NOW() WHERE id=${found[0].device_id}`;
     return json({ok:true,script:buildScript(safeRows,keyCode,mode)});
