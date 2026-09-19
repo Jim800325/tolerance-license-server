@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hashInstallationId, hashLicenseCode, normalizeLicenseCode } from '../../../../lib/crypto';
 import { getDb } from '../../../../lib/db';
 import { getLicenseAvailability, LicenseStatus } from '../../../../lib/license';
-import { createLicenseToken } from '../../../../lib/license-token';
+import { createLicenseToken, LICENSE_TOKEN_TTL_SECONDS } from '../../../../lib/license-token';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     return json({
       ok: true,
       token,
-      tokenExpiresIn: 900,
+      tokenExpiresIn: LICENSE_TOKEN_TTL_SECONDS,
       license: {
         expiresAt: license.expires_at ?? null,
         maxDevices: Number(license.max_devices),
