@@ -26,19 +26,39 @@ export default function AdminClient() {
   useEffect(()=>{void load();},[load]);
 
   async function login(e:FormEvent<HTMLFormElement>){
-    e.preventDefault();setMessage('');const fd=new FormData(e.currentTarget);
+    e.preventDefault(); setMessage('');
+    const form=e.currentTarget;
+    const fd=new FormData(form);
     try {
       const r=await fetch('/api/admin/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:fd.get('password')})});
-      if(!r.ok){setMessage('登录失败，请检查管理员密码。');return;}
-      e.currentTarget.reset();await load();
-    } catch { setMessage('登录接口连接失败。'); }
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok){
+        setMessage(r.status===401?'登录失败，请检查管理员密码。':'登录失败：'+(data.error??('HTTP '+r.status)));
+        return;
+      }
+      form.reset();
+      await load();
+    } catch (err) {
+      console.error('Admin login failed',err);
+      setMessage('登录请求异常，请刷新页面后重试。');
+    }
   }
 
   async function createLicense(e:FormEvent<HTMLFormElement>){
-    e.preventDefault();setMessage('');const fd=new FormData(e.currentTarget);
-    const r=await fetch('/api/admin/licenses',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({customerNote:fd.get('note'),maxDevices:Number(fd.get('maxDevices')),expiresAt:fd.get('expiresAt')||null})});
-    const j=await r.json();if(!r.ok){setMessage('创建失败：'+(j.error??'unknown'));return;}
-    setMessage('授权码已创建：'+j.licenseCode);e.currentTarget.reset();await load();
+    e.preventDefault(); setMessage('');
+    const form=e.currentTarget;
+    const fd=new FormData(form);
+    try {
+      const r=await fetch('/api/admin/licenses',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({customerNote:fd.get('note'),maxDevices:Number(fd.get('maxDevices')),expiresAt:fd.get('expiresAt')||null})});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok){setMessage('创建失败：'+(j.error??('HTTP '+r.status)));return;}
+      setMessage('授权码已创建：'+j.licenseCode);
+      form.reset();
+      await load();
+    } catch(err) {
+      console.error('Create license request failed',err);
+      setMessage('创建授权请求异常，请刷新页面后重试。');
+    }
   }
 
   async function action(id:string,body:object){const r=await fetch('/api/admin/licenses/'+id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify(body)});if(!r.ok){setMessage('操作失败');return;}setMessage('操作成功');await load();}
