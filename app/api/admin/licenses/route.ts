@@ -41,18 +41,19 @@ export async function POST(request: NextRequest) {
     const expiresAt = body?.expiresAt ? new Date(body.expiresAt) : null;
     if (expiresAt && Number.isNaN(expiresAt.getTime()))
       return NextResponse.json({ ok: false, error: 'invalid_expiry' }, { status: 400 });
+    const features = { completeScript: body?.features?.completeScript !== false };
     const code = generateLicenseCode();
     const sql = getDb();
     await sql`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS license_code_encrypted TEXT`;
     const inserted = await sql`
-      INSERT INTO licenses (license_hash, license_prefix, license_code_encrypted, customer_note, expires_at, max_devices)
+      INSERT INTO licenses (license_hash, license_prefix, license_code_encrypted, customer_note, expires_at, max_devices, features)
       VALUES (${hashLicenseCode(code)}, ${getLicensePrefix(code)}, ${encryptLicenseCode(code)},
               ${String(body?.customerNote ?? '').slice(0, 500) || null},
-              ${expiresAt ? expiresAt.toISOString() : null}, ${maxDevices})
-      RETURNING id, license_prefix, customer_note, status, expires_at, max_devices, created_at
+              ${expiresAt ? expiresAt.toISOString() : null}, ${maxDevices}, ${JSON.stringify(features)}::jsonb)
+      RETURNING id, license_prefix, customer_note, status, expires_at, max_devices, features, created_at
     `;
     await sql`INSERT INTO admin_audit_log (action, license_id, details)
-      VALUES ('license_created', ${inserted[0].id}, ${JSON.stringify({ maxDevices, expiresAt: expiresAt?.toISOString() ?? null })}::jsonb)`;
+      VALUES ('license_created', ${inserted[0].id}, ${JSON.stringify({ maxDevices, expiresAt: expiresAt?.toISOString() ?? null, features })}::jsonb)`;
     return NextResponse.json({ ok: true, licenseCode: code, license: inserted[0] }, { status: 201 });
   } catch (error) {
     console.error('Create license failed', error);
