@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS licenses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   license_hash TEXT UNIQUE NOT NULL,
   license_prefix TEXT NOT NULL,
+  license_code_encrypted TEXT,
   customer_note TEXT,
   status TEXT NOT NULL DEFAULT 'active'
     CHECK (status IN ('active', 'paused', 'revoked')),
@@ -13,6 +14,8 @@ CREATE TABLE IF NOT EXISTS licenses (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE licenses ADD COLUMN IF NOT EXISTS license_code_encrypted TEXT;
 
 CREATE TABLE IF NOT EXISTS license_devices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
