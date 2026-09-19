@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤖 智能公差计算器 v7.1 — 双模式脚本生成</title>
+<style>
+:root {
+  --bg: #0f172a; --card: #1e293b; --card-hover: #334155;
+  --text: #e2e8f0; --text-dim: #94a3b8;
+  --accent: #38bdf8; --accent2: #a78bfa;
+  --success: #4ade80; --warning: #fbbf24; --danger: #f87171;
+  --inferred: #c084fc; --border: #334155;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px;
+}
+.container { max-width: 1000px; margin: 0 auto; }
+header {
+  text-align: center; padding: 30px 0 20px;
+  border-bottom: 1px solid var(--border); margin-bottom: 25px;
+}
+header h1 {
+  font-size: 1.8rem;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+header h1 .title-emoji {
+  -webkit-text-fill-color: initial;
+  background: none;
+  -webkit-background-clip: initial;
+}
+header p { color: var(--text-dim); margin-top: 8px; font-size: 0.9rem; }
+
+.panel {
+  background: var(--card); border-radius: 12px; padding: 20px;
+  margin-bottom: 20px; border: 1px solid var(--border); transition: border-color 0.2s;
+}
+.panel:hover { border-color: var(--accent); }
+.panel h3 {
+  font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+
+.input-group { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.input-group label { color: var(--text-dim); font-size: 0.85rem; min-width: 80px; }
+.input-group input, .input-group select, .input-group textarea {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 12px; color: var(--text); font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+}
+.input-group input:focus, .input-group textarea:focus { border-color: var(--accent); }
+.input-group input[type="number"] { width: 100px; }
+.input-group textarea { width: 100%; min-height: 160px; resize: vertical; font-family: "Consolas", "Monaco", monospace; font-size: 0.85rem; line-height: 1.6; }
+
+/* 数据输入区域：根据内容自动调整高度 */
+#inputData {
+  height: 240px;
+  min-height: 240px;
+  max-height: min(600px, 60vh);
+  overflow-y: hidden;
+}
+
+.btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: 8px; padding: 10px 24px; color: #fff;
+  font-size: 0.95rem; font-weight: 600; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(56,189,248,0.3); }
+.btn:active { transform: translateY(0); }
+.btn:disabled {
+  cursor: not-allowed; transform: none !important; box-shadow: none !important;
+}
+.btn-secondary { background: var(--card-hover); border: 1px solid var(--border); color: var(--text); }
+.btn-secondary:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.btn-success { background: linear-gradient(135deg, #22c55e, #4ade80); }
+.btn-success:hover { box-shadow: 0 8px 20px rgba(34,197,94,0.3); }
+.btn-small { padding: 4px 10px; font-size: 0.78rem; }
+
+.hint {
+  background: rgba(56,189,248,0.08); border-left: 3px solid var(--accent);
+  padding: 10px 14px; border-radius: 0 8px 8px 0;
+  font-size: 0.82rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 12px;
+}
+.hint code { background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; color: var(--accent); font-family: monospace; }
+
+/* 终端风格 */
+.result-card {
+  background: var(--card); border-radius: 10px; padding: 16px 20px;
+  margin-bottom: 14px; border: 1px solid var(--border);
+  font-family: "Consolas", "Monaco", "Courier New", "Microsoft YaHei", monospace;
+  font-size: 0.88rem; line-height: 1.7;
+}
+.result-card.warning { border-left: 4px solid var(--warning); }
+.result-card.error   { border-left: 4px solid var(--danger); }
+.result-card.inferred{ border-left: 4px solid var(--inferred); }
+.result-card .line { white-space: pre; font-family: "Consolas", "Monaco", "Courier New", "Microsoft YaHei", monospace; }
+.result-card .line-name { color: var(--text); font-weight: 600; font-size: 0.95rem; }
+.result-card .line-raw  { color: var(--text-dim); }
+.result-card .line-sep  { color: var(--border); }
+.result-card .line-label{ color: var(--text-dim); }
+.result-card .line-dim  { color: var(--accent); }
+.result-card .line-wt   { color: var(--success); }
+.result-card .line-missing { color: var(--danger); }
+.result-card .tag-row { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* 卡片风格 */
+.result-card-v2 {
+  background: var(--card); border-radius: 14px; padding: 22px 24px;
+  margin-bottom: 18px; border: 1px solid var(--border); transition: border-color 0.2s;
+}
+.result-card-v2:hover { border-color: var(--accent); }
+.result-card-v2.warning { border-left: 4px solid var(--warning); }
+.result-card-v2.error   { border-left: 4px solid var(--danger); }
+.result-card-v2.inferred{ border-left: 4px solid var(--inferred); }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.card-title { font-size: 1.15rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.card-title .icon-box { font-size: 1.3rem; }
+.card-id { color: var(--text-dim); font-size: 0.85rem; font-weight: 500; margin-top: 2px; margin-left: 36px; }
+.card-raw { color: var(--text-dim); font-size: 0.82rem; margin: 8px 0 14px 36px; font-family: "Consolas", monospace; word-break: break-all; }
+.card-fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-left: 36px; }
+@media (max-width: 600px) { .card-fields { grid-template-columns: 1fr; margin-left: 0; } .card-id, .card-raw { margin-left: 0; } }
+.field-box { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px 14px; border: 1px solid transparent; transition: border-color 0.2s; }
+.field-box:hover { border-color: var(--border); }
+.field-box.missing { border-color: rgba(248,113,113,0.2); background: rgba(248,113,113,0.04); }
+.field-box.inferred { border-color: rgba(192,132,252,0.2); background: rgba(192,132,252,0.04); }
+.field-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.field-label .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.dot-len { background: var(--accent); } .dot-wid { background: var(--accent2); } .dot-hei { background: var(--success); } .dot-wt { background: var(--warning); }
+.field-value { font-size: 1.05rem; font-weight: 600; font-family: "Consolas", "Monaco", monospace; color: var(--text); }
+.field-value .range { font-size: 0.78rem; color: var(--text-dim); font-weight: 400; margin-left: 4px; }
+.field-value.missing { color: var(--danger); font-style: italic; }
+.card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; margin-left: 36px; }
+@media (max-width: 600px) { .card-tags { margin-left: 0; } }
+
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+.badge-ok { background: rgba(74,222,128,0.12); color: var(--success); }
+.badge-warning { background: rgba(251,191,36,0.12); color: var(--warning); }
+.badge-inferred { background: rgba(192,132,252,0.12); color: var(--inferred); }
+.badge-missing { background: rgba(248,113,113,0.12); color: var(--danger); }
+.badge-error { background: rgba(239,68,68,0.12); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+
+.edit-panel { background: rgba(56,189,248,0.05); border: 1px solid var(--accent); border-radius: 10px; padding: 14px 18px; margin-top: 14px; }
+.edit-title { color: var(--accent); font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; }
+.edit-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 600px) { .edit-grid { grid-template-columns: repeat(2, 1fr); } }
+.edit-field label { display: block; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 4px; }
+.edit-field input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text); font-family: monospace; font-size: 0.85rem; }
+.edit-field input:focus { border-color: var(--accent); outline: none; }
+.edit-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+.stats-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.stat-box { background: var(--card); border-radius: 10px; padding: 14px 20px; min-width: 120px; text-align: center; border: 1px solid var(--border); }
+.stat-box .num { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+.stat-box .label { font-size: 0.78rem; color: var(--text-dim); margin-top: 4px; }
+
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+.empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+
+/* 脚本输出区 */
+.script-output {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px; margin-top: 14px; position: relative;
+}
+.script-output pre {
+  font-family: "Consolas", "Monaco", monospace; font-size: 0.78rem;
+  line-height: 1.7; color: var(--text); white-space: pre-wrap;
+  word-break: break-all; max-height: 420px; overflow-y: auto;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(12px); }
+}
+.result-card, .result-card-v2 { animation: fadeInUp 0.3s ease both; }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--card-hover); }
+
+/* Spinner */
+.spinner {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+  margin-right: 6px; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 0.9rem;
+  z-index: 9999; animation: fadeInUp 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3); color: #0f172a;
+}
+.toast-success { background: var(--success); }
+.toast-warning { background: var(--warning); }
+.toast-danger  { background: var(--danger); color: #fff; }
+.toast-info    { background: var(--accent); }
+
+/* 分页 */
+.pagination {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 20px 0; padding: 12px 16px; background: var(--card);
+  border-radius: 10px; border: 1px solid var(--border); flex-wrap: wrap; gap: 10px;
+}
+.page-info { color: var(--text-dim); font-size: 0.85rem; }
+.page-btns { display: flex; gap: 6px; }
+.page-btns button { min-width: 36px; justify-content: center; }
+.page-btns button.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; cursor: default;
+}
+
+/* 行数统计 */
+.line-stats {
+  text-align: right; font-size: 0.8rem; margin-top: 6px;
+  color: var(--text-dim); min-height: 1.2em; transition: color 0.2s;
+}
+
+@media (max-width: 600px) {
+  body { padding: 10px; }
+  header h1 { font-size: 1.3rem; }
+  .result-card { padding: 12px 14px; font-size: 0.8rem; }
+  .result-card-v2 { padding: 16px; }
+  .pagination { flex-direction: column; align-items: stretch; }
+  .page-btns { justify-content: center; }
+}
+
+/* 数据输入文本框：初始宽度与页面内容区一致 */
+#inputData { width: 100%; max-width: 100%; display: block; }
+</style>
+
+<style>
+.auth-panel{border-color:#d69e2e!important}
+.auth-grid{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+.auth-grid label{display:grid;gap:6px;color:var(--text-dim);font-size:.85rem}
+.auth-grid input{width:100%}
+.auth-status{margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.04);font-size:.86rem}
+.auth-status.ok{border:1px solid #2f855a;color:#9ae6b4}
+.auth-status.bad{border:1px solid #c53030;color:#feb2b2}
+.auth-status.wait{border:1px solid var(--border);color:var(--text-dim)}
+@media(max-width:700px){.auth-grid{grid-template-columns:1fr}}
+</style>
+
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1><span class="title-emoji">🤖</span> 智能公差计算器 v7.1</h1>
+  <p>双模式脚本生成 · 终端/卡片风格 · 尺寸/重量公差独立设置 · 智能推断分组</p>
+</header>
+
+<div class="panel auth-panel">
+  <h3>🔐 在线授权 · v7.1</h3>
+  <div class="auth-grid">
+    <label>授权码
+      <input id="licenseCodeInput" type="password" autocomplete="off" placeholder="TC-XXXX-XXXX-XXXX-XXXX">
+    </label>
+    <button class="btn btn-success" onclick="activateLicense()">🔑 激活授权</button>
+  </div>
+  <div id="licenseStatus" class="auth-status wait">正在检查本机授权状态…</div>
+  <div class="hint" style="margin-top:8px;">授权绑定当前浏览器安装标识。清除浏览器本地存储后会被视为新安装；如达到设备上限，可在授权管理后台重置设备。</div>
+</div>
+
+
+<div class="panel">
+  <h3>⚙️ 设置</h3>
+  <div class="input-group">
+    <label>尺寸公差</label>
+    <input type="number" id="tolerancePctDim" value="5" min="0.1" max="100" step="0.1" onchange="onSettingChange()">
+    <span style="color:var(--text-dim);font-size:0.85rem;">%</span>
+  </div>
+  <div class="input-group">
+    <label>重量公差</label>
+    <input type="number" id="tolerancePctWt" value="5" min="0.1" max="100" step="0.1" onchange="onSettingChange()">
+    <span style="color:var(--text-dim);font-size:0.85rem;">%</span>
+  </div>
+  <div class="input-group">
+    <label>推断开关</label>
+    <select id="inferSwitch" onchange="onSettingChange()">
+      <option value="0">❌ 禁用推断</option>
+      <option value="1">✅ 启用智能推断</option>
+    </select>
+  </div>
+  <div class="input-group">
+    <label>推断模式</label>
+    <select id="inferMode" onchange="onSettingChange()">
+      <option value="smart">🧠 智能分组（同名称→同类型→全局）</option>
+      <option value="exact">🔒 仅同名称精确匹配</option>
+      <option value="global">🌍 仅全局比例推断</option>
+    </select>
+  </div>
+  <!-- 推断模式说明 -->
+  <div class="hint" style="margin-top:8px;margin-bottom:4px;">
+    <strong>🔍 推断模式说明</strong>
+    <table style="width:100%;margin-top:8px;border-collapse:collapse;font-size:0.8rem;color:var(--text-dim);">
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:6px 8px 6px 0;white-space:nowrap;font-weight:600;color:var(--accent);">🧠 智能分组</td>
+        <td style="padding:6px 0;">逐字段三级递进：①同名称资料均值 → ②同类型（如 Truck/Car）资料均值 → ③全局尺寸比例。前两级可补尺寸和重量；第三级只补缺失尺寸。</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:6px 8px 6px 0;white-space:nowrap;font-weight:600;color:var(--accent2);">🔒 仅同名称</td>
+        <td style="padding:6px 0;">只使用名称完全一致的其他资料记录均值补全缺失字段，可用于长度、宽度、高度和重量。</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 8px 6px 0;white-space:nowrap;font-weight:600;color:var(--success);">🌍 全局比例</td>
+        <td style="padding:6px 0;">忽略名称和类型，只使用原本尺寸完整的样本计算全局长宽/长高比例来补缺失尺寸；此模式不推断重量。</td>
+      </tr>
+    </table>
+    <div style="margin-top:8px;font-size:0.78rem;color:var(--text-dim);opacity:0.8;">
+      💡 推断只作用于工具计算值，不改写原始资料；结果会标注来源：<code>同产品均值</code> / <code>同类型[xxx]均值</code> / <code>全局比例推断</code>
+    </div>
+  </div>
+  <div class="input-group">
+    <label>显示风格</label>
+    <select id="displayMode" onchange="onModeChange()">
+      <option value="terminal">📋 终端风格</option>
+      <option value="card">🎴 卡片风格</option>
+    </select>
+  </div>
+  <div class="input-group">
+    <label>KeyCode</label>
+    <input type="text" id="keyCode" value="6058693" style="width:120px;" onchange="onSettingChange()">
+  </div>
+  <div class="input-group">
+    <label>脚本模式</label>
+    <select id="scriptMode" onchange="onSettingChange()">
+      <option value="size_weight">📦 Size of + weight of（每产品2行）</option>
+      <option value="dim4">📐 Length/Width/Height/Weight（每产品4行）</option>
+    </select>
+      <label style="margin-top:12px;">执行方式</label>
+      <select id="scriptRunMode">
+        <option value="embedded" selected>🚀 完整执行脚本（推荐，无需 JSON）</option>
+        <option value="json">📁 JSON 导入脚本（保留 v6.1.6 方式）</option>
+      </select>
+      <div class="hint" style="margin-top:6px;">
+        完整执行脚本需要有效在线授权；当前最终 Spec / Min / Max 会发送到授权服务器生成执行脚本，目标网页只负责自动加行和填写，不会再次计算公差。
+      </div>
+    <span style="color:var(--text-dim);font-size:0.8rem;margin-left:8px;">选择填充脚本的Data字段格式</span>
+  </div>
+</div>
+
+<div class="panel" style="border-color: var(--accent);">
+  <h3>📖 使用说明</h3>
+  <div class="hint" style="margin-bottom:0;">
+    <strong>基本使用流程：</strong><br>
+    1. 设置 <code>尺寸公差</code> 和 <code>重量公差</code>，例如 5 表示 ±5%。<br>
+    2. 将资料原文粘贴到“数据输入”区域，每行一个产品。程序会保留每行 <code>原始资料</code>，计算和推断不会改写原始资料字符串。<br>
+    3. 如资料存在缺失，可按需要开启 <code>推断开关</code>；关闭时仅使用资料中已提供的数值，缺失项保持缺失。<br>
+    4. 点击 <code>🚀 开始计算</code>，或使用 <code>Ctrl+Enter</code> 快速计算。已提供的尺寸/重量会正常计算公差范围；启用推断后，可推断的缺失项会先生成工具计算值，再计算对应公差。<br>
+    5. 查看公差范围、原始资料缺失、仍缺失、质量警告、解析异常和推断来源。紫色推断标签表示该值由工具计算得到，不属于原始资料。<br>
+    6. 如需临时调整当前计算结果，可点击 <code>✏️ 修改</code>；该操作只修改当前工具中的计算值，不会改写“原始”一栏保存的资料文本。<br>
+    7. 计算完成后，可导出 <code>CSV</code>、<code>JSON</code>，也可点击 <code>🧩 生成执行脚本</code>。<br><br>
+    <strong>推断模式：</strong><br>
+    • <code>智能分组</code>：逐字段按“同名称 → 同类型 → 全局尺寸比例”依次尝试补全；同名称/同类型可用于长度、宽度、高度和重量，全局比例只用于尺寸。<br>
+    • <code>仅同名称</code>：只使用名称完全一致的其他资料记录均值补全缺失字段。<br>
+    • <code>仅全局比例</code>：忽略名称和类型，只根据完整尺寸样本的整体长宽/长高比例推算缺失尺寸；不会通过全局比例推断重量。<br><br>
+    <strong>填充脚本使用：</strong><br>
+    先选择正确的 <code>KeyCode</code> 和 <code>脚本模式</code> → 生成脚本 → 复制代码 → 打开目标网页 → 按 F12 打开浏览器控制台 → 粘贴并运行 → 浏览器选择本工具导出的 <code>JSON</code> 文件。脚本会自动定位 Measurement Chart、自动增加不足的行、按字段名精确填充，并将 Samples #6–#13 填为 <code>--</code>。<br><br>
+    <strong>注意事项：</strong><br>
+    • 原始资料有 <code>?</code>、<code>null</code>、<code>n/a</code> 等缺失内容时，程序会保留缺失位置，不会把后面的尺寸向前错位。<br>
+    • 紫色“推断”标签表示该数值并非原始输入，请重点核对后再用于后续操作。<br>
+    • <code>资料缺失</code>只表示原始资料中存在空缺，不等同于质量异常；<code>质量警告</code>仅用于尺寸比例、尺寸/重量过大等数值合理性提醒；<code>解析异常</code>表示产品已建立但某字段未能可靠解析；<code>解析失败</code>表示整行无法建立有效产品记录。<br>
+    • 输入内容和设置会在停止输入后自动保存到当前浏览器本地；输入框会自动增高，达到最大高度后改为内部滚动。<br>
+    • 本工具用于辅助整理和计算；正式生产或质检仍应以原始资料及实际测量要求为准。
+  </div>
+</div>
+
+<div class="panel">
+  <h3>📝 数据输入</h3>
+  <div class="hint">
+    <strong>支持格式（每行一个产品）：</strong><br>
+    <code>Fire Truck: 7.6 x 2.7 x 4.1cm; 31.6g</code>（尺寸 + 分号 + 重量）<br>
+    <code>Police Car,7.2,2.8,2.9,26.6</code>（CSV：名称,长度,宽度,高度,重量）<br>
+    <code>Tow Truck: 6.7 x ? x 3cm; ?g</code>（保留缺失位置）<br>
+    <code>Ambulance: length 8.5 width 3.2 height 4.0 weight 55g</code>（英文字段名）<br>
+    <code>救护车: 长度 8.5cm 宽度 3.2cm 高度 4cm 重量 55g</code>（中文字段名）<br>
+    <code>挖掘机 15.5cm x 8cm x 12cm 120g</code>（无分号，末尾直接跟重量）<br>
+    <code>Mixed: 12inch x 5cm x 40mm; 0.12kg</code>（各尺寸可使用不同单位）<br>
+    <strong>尺寸顺序：</strong>未使用字段名时，前三个尺寸槽位固定按“长度 × 宽度 × 高度”解释；缺失槽位不会被后面的数值顶替。<br>
+    <strong>支持尺寸单位：</strong>mm / cm / m / inch / in / 英寸符号 <code>"</code> / 英尺符号 <code>'</code>（自动换算为 cm）<br>
+    <strong>支持重量单位：</strong>mg / g / kg / oz / lb（自动换算为 g）<br>
+    <strong>缺失标记：</strong><code>?</code>、<code>*</code>、<code>null</code>、<code>none</code>、<code>n/a</code>、<code>na</code>、<code>-</code>、<code>—</code>、<code>~</code>、留空等；建议优先使用 <code>?</code>，最清晰且不容易与尺寸分隔符混淆。<br>
+    <strong>单位说明：</strong>同一条资料中每个尺寸会独立识别单位，例如 <code>12inch x 5cm x 40mm</code> 可正确分别换算。
+  </div>
+  <textarea id="inputData" placeholder="请粘贴数据，每行一个产品...（Ctrl+Enter 快速计算）"></textarea>
+  <div class="line-stats" id="lineStats"></div>
+  <div class="toolbar" style="margin-top:12px;">
+    <button class="btn" id="calcBtn" onclick="calculate()">🚀 开始计算</button>
+    <button class="btn btn-secondary" onclick="loadExample()">📋 加载示例</button>
+    <button class="btn btn-secondary" onclick="loadExample4()">📐 加载4行示例</button>
+    <button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+  </div>
+</div>
+
+<div id="statsPanel" style="display:none;">
+  <div class="stats-bar">
+    <div class="stat-box"><div class="num" id="statTotal">0</div><div class="label">总产品</div></div>
+    <div class="stat-box"><div class="num" id="statInferred">0</div><div class="label">智能推断</div></div>
+    <div class="stat-box"><div class="num" id="statMissing">0</div><div class="label">资料缺失</div></div>
+    <div class="stat-box"><div class="num" id="statWarning">0</div><div class="label">质量警告</div></div>
+    <div class="stat-box"><div class="num" id="statParseIssue">0</div><div class="label">解析异常</div></div>
+    <div class="stat-box"><div class="num" id="statError">0</div><div class="label">解析失败</div></div>
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-success" onclick="exportCSV()">📥 导出 CSV</button>
+    <button class="btn btn-success" onclick="exportJSON()">📥 导出 JSON</button>
+    <button class="btn btn-success" onclick="showScriptPanel()">🧩 生成执行脚本</button>
+  </div>
+</div>
+
+<div id="results"></div>
+
+<div id="scriptPanel" style="display:none;" class="panel">
+  <h3>🧩 浏览器控制台填充脚本</h3>
+  <div class="hint">
+    <strong>使用方法：</strong>确认上方 <code>KeyCode</code> 和 <code>脚本模式</code> → 复制下方代码 → 打开目标网页 → F12 控制台 → 粘贴运行 → 选择本工具导出的 JSON 文件 → 核对自动填充结果<br>
+    选择 <code>完整执行脚本</code> 时，当前最终 Spec / Min / Max 会直接封装进复制脚本，无需保存 JSON，目标网页不会二次计算公差；选择 <code>JSON 导入脚本</code> 时继续保留 v6.1.6 的文件选择方式。两种方式都会自动增加 Measurement Chart 行，并让 Samples #1–#5 留空、#6–#13 填 <code>--</code>。
+  </div>
+  <div class="script-output">
+    <button class="btn btn-small btn-success" style="position:absolute;top:10px;right:10px;" onclick="copyScript()">📋 复制</button>
+    <pre id="scriptPre"></pre>
+  </div>
+  <div class="toolbar" style="margin-top:12px;">
+    <button class="btn btn-success" onclick="downloadScript()">💾 下载 .js</button>
+    <button class="btn btn-secondary" onclick="hideScriptPanel()">关闭</button>
+  </div>
+</div>
+
+</div>
+
+<div class="panel" style="border-color: var(--warning); margin: 30px auto 20px; max-width: 1000px;">
+  <h3>⚠️ 免责声明</h3>
+  <div style="font-size: 0.82rem; color: var(--text-dim); line-height: 1.8;">
+    <p>1. 本工具为辅助计算程序，公差计算结果仅供参考，不保证绝对准确。</p>
+    <p>2. 输入数据的准确性直接影响计算结果，请用户自行核对原始数据。</p>
+    <p>3. 因数据输入错误、单位换算偏差或算法局限导致的任何损失，本工具不承担任何责任。</p>
+    <p>4. 正式生产或质检场景，请以专业计量设备实测数据为准。</p>
+    <p>5. 使用本工具即表示您已阅读并同意以上条款。</p>
+  </div>
+</div>
+
+<script>
+const UNIT_MAP = {
+  'mm': 0.1, 'millimeter': 0.1, 'millimeters': 0.1,
+  'cm': 1.0, 'centimeter': 1.0, 'centimeters': 1.0,
+  'm': 100.0, 'meter': 100.0, 'meters': 100.0,
+  'inch': 2.54, 'inches': 2.54, 'in': 2.54,
+  '"': 2.54, "'": 30.48,
+  'mg': 0.001, 'milligram': 0.001,
+  'g': 1.0, 'gram': 1.0, 'grams': 1.0,
+  'kg': 1000.0, 'kilogram': 1000.0, 'kilograms': 1000.0,
+  'oz': 28.3495, 'ounce': 28.3495, 'ounces': 28.3495,
+  'lb': 453.592, 'pound': 453.592, 'pounds': 453.592,
+};
+
+const STORAGE_KEY = 'tolerance_calculator_v6';
+const PAGE_SIZE = 50;
+
+let products = [];
+let errorLines = [];
+let currentMode = 'terminal';
+let lastScript = '';
+let currentPage = 1;
+
+function escapeHtml(text) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+function isMissing(token) {
+  if (token === null || token === undefined) return true;
+  const t = String(token).trim().toLowerCase();
+  return ["","?","*","null","none","n/a","na","x","-","—","~",".","..","...","missing","unknown","unk"].includes(t);
+}
+
+function detectUnitFactor(text, isWeight) {
+  const lowered = String(text).toLowerCase();
+  // 允许数字与单位直接相连，例如 12inch、40mm、1kg。
+  if (isWeight) {
+    if (/(?:^|[^a-z])kg(?:$|[^a-z])/.test(lowered)) return 1000;
+    if (/(?:^|[^a-z])lb(?:$|[^a-z])/.test(lowered)) return 453.592;
+    if (/(?:^|[^a-z])oz(?:$|[^a-z])/.test(lowered)) return 28.3495;
+    if (/(?:^|[^a-z])mg(?:$|[^a-z])/.test(lowered)) return 0.001;
+    return 1;
+  } else {
+    if (/(?:^|[^a-z])(?:inch|inches|in)(?:$|[^a-z])/.test(lowered) || /"/.test(text)) return 2.54;
+    if (/(?:^|[^a-z])mm(?:$|[^a-z])/.test(lowered)) return 0.1;
+    if (/(?:^|[^a-z])cm(?:$|[^a-z])/.test(lowered)) return 1;
+    if (/(?:^|[^a-z])m(?:$|[^a-z])/.test(lowered)) return 100;
+    if (/'/.test(text)) return 30.48;
+    return 1;
+  }
+}
+
+function extractNumbers(text) {
+  const matches = text.match(/[0-9]*\.?[0-9]+/g);
+  if (!matches) return [];
+  return matches.map(s => parseFloat(s)).filter(n => n > 0);
+}
+
+// 判断一个字段是否明确写出了单位；未写单位时可继承整组唯一单位。
+function hasExplicitUnit(text, isWeight) {
+  const t = String(text).toLowerCase();
+  if (isWeight) return /(?:mg|kg|oz|lb|grams?|kilograms?|ounces?|pounds?|g)(?:$|[^a-z])/.test(t);
+  return /(?:mm|cm|inch|inches|millimeters?|centimeters?|meters?|in|m)(?:$|[^a-z])/.test(t) || /["']/.test(text);
+}
+
+function isMeasurementMissing(text, isWeight) {
+  let t = String(text).trim().toLowerCase();
+  if (isWeight) {
+    t = t.replace(/\s*(?:mg|kg|oz|lb|grams?|kilograms?|ounces?|pounds?|g)\s*$/i, '').trim();
+  } else {
+    t = t.replace(/\s*(?:mm|cm|inch|inches|in|millimeters?|centimeters?|meters?|m|["'])\s*$/i, '').trim();
+  }
+  return isMissing(t);
+}
+
+// 尺寸字段若只有一种明确单位，则未标单位的同组字段继承它；混合单位时不猜测，默认按 cm。
+function getDefaultDimensionFactor(sizeText) {
+  const tokens = String(sizeText).split(/[x×,，]/).map(s => s.trim()).filter(Boolean);
+  const factors = tokens
+    .filter(t => hasExplicitUnit(t, false))
+    .map(t => detectUnitFactor(t, false));
+  const unique = [...new Set(factors)];
+  return unique.length === 1 ? unique[0] : 1;
+}
+
+function parseMeasurementToken(token, isWeight, fallbackFactor = 1) {
+  if (token === null || token === undefined) return null;
+  const clean = String(token).trim();
+  if (isMeasurementMissing(clean, isWeight)) return null;
+  const nums = extractNumbers(clean);
+  if (nums.length === 0) return null;
+  const factor = hasExplicitUnit(clean, isWeight) ? detectUnitFactor(clean, isWeight) : fallbackFactor;
+  return nums[0] * factor;
+}
+
+// 保留长度/宽度/高度的原始位置，避免 "6.7 x ? x 3" 被压缩成 [6.7, 3] 后发生错位。
+function parseDimensionSlots(sizeText) {
+  const defaultFactor = getDefaultDimensionFactor(sizeText);
+  let parts;
+  if (/[x×]/.test(sizeText)) {
+    parts = String(sizeText).split(/[x×]/);
+  } else {
+    parts = String(sizeText).split(/[,，]/);
+  }
+  parts = parts.map(s => s.trim());
+
+  // 只取前三个尺寸槽位；不存在的槽位保持 null。
+  const dims = [0, 1, 2].map(i =>
+    i < parts.length ? parseMeasurementToken(parts[i], false, defaultFactor) : null
+  );
+  return { dims, partCount: parts.length };
+}
+
+// 支持字段名格式，例如：length 8.5 width 3.2 height 4.0 weight 55g
+// 同时兼容中文：长度 8.5 宽度 3.2 高度 4.0 重量 55g。
+function parseLabeledMeasurements(text) {
+  const source = String(text);
+  const labelPatterns = {
+    length: '(?:length|len|长度)',
+    width:  '(?:width|wid|宽度)',
+    height: '(?:height|hei|高度)',
+    weight: '(?:weight|wt|重量)'
+  };
+
+  const hasAnyLabel = new RegExp(Object.values(labelPatterns).join('|'), 'i').test(source);
+  if (!hasAnyLabel) return { matched: false };
+
+  function getField(pattern, isWeight) {
+    const missingWords = '\\?|\\*|null|none|n\\/?a|na|missing|unknown|unk|-|—|~';
+    const number = '[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)';
+    const unit = isWeight
+      ? '(?:mg|kg|oz|lb|g|gram(?:s)?|kilogram(?:s)?|ounce(?:s)?|pound(?:s)?)?'
+      : '(?:mm|cm|inch(?:es)?|in|m|millimeter(?:s)?|centimeter(?:s)?|meter(?:s)?|[\"\\\'])?';
+    const re = new RegExp(pattern + '\\s*[:=：]?\\s*(' + missingWords + '|' + number + ')\\s*(' + unit + ')', 'i');
+    const m = source.match(re);
+    if (!m) return { present: false, value: null, raw: '' };
+    const rawValue = (m[1] || '') + (m[2] || '');
+    return {
+      present: true,
+      value: parseMeasurementToken(rawValue, isWeight, 1),
+      raw: rawValue
+    };
+  }
+
+  const l = getField(labelPatterns.length, false);
+  const w = getField(labelPatterns.width, false);
+  const h = getField(labelPatterns.height, false);
+  const wt = getField(labelPatterns.weight, true);
+
+  return {
+    matched: true,
+    length: l.value, width: w.value, height: h.value, weight: wt.value,
+    present: { length: l.present, width: w.present, height: h.present, weight: wt.present },
+    raw: { length: l.raw, width: w.raw, height: h.raw, weight: wt.raw }
+  };
+}
+
+
+// 支持没有分号/weight 标签、而是直接把重量写在第三个尺寸后面的格式：
+// 例如：15.5cm x 8cm x 12cm 120g / 15.5cm × 8cm × 12cm 0.12kg / ... ?g
+// 只识别明确带重量单位的末尾字段，避免把第三个尺寸误当成重量。
+function splitTrailingWeight(text) {
+  const source = String(text).trim();
+  const missing = '(?:\\?|\\*|null|none|n\\/?a|na|missing|unknown|unk|-|—|~)';
+  const number = '(?:[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+))';
+  const weightUnit = '(?:mg|kg|oz|lb|g|gram(?:s)?|kilogram(?:s)?|ounce(?:s)?|pound(?:s)?)';
+  const re = new RegExp('^(.*?)(?:\\s+|[,，])(' + missing + '|' + number + ')\\s*(' + weightUnit + ')\\s*$', 'i');
+  const m = source.match(re);
+  if (!m) return { sizeText: source, weightText: '', matched: false };
+  return {
+    sizeText: m[1].trim(),
+    weightText: ((m[2] || '') + (m[3] || '')).trim(),
+    matched: true
+  };
+}
+
+function smartParseLine(line) {
+  line = line.trim();
+  if (!line) return null;
+  const raw = line;
+  let name = "产品";
+  let body = line;
+
+  const colonIdx = line.search(/[:：]/);
+  if (colonIdx !== -1) {
+    name = line.slice(0, colonIdx).trim();
+    body = line.slice(colonIdx + 1).trim();
+  } else {
+    const commaParts = line.split(/[,，]/);
+    if (commaParts.length >= 4 && /[a-zA-Z\u4e00-\u9fa5]/.test(commaParts[0])) {
+      name = commaParts[0].trim();
+      body = commaParts.slice(1).join(',');
+    } else {
+      if (/^\d+\.?\d*\s*[x×,，;；]/.test(line)) {
+        // 无名称
+      } else {
+        const m = line.match(/[\s,;：，；]\s*(\d+\.?\d*)/);
+        if (m) {
+          const digitPos = line.indexOf(m[1], m.index);
+          if (digitPos > 1) {
+            name = line.slice(0, digitPos).trim().replace(/[\s:：;；,，x×\-]+$/g, '');
+            body = line.slice(digitPos);
+          }
+        }
+      }
+    }
+  }
+
+  let sizeText = body;
+  let weightText = "";
+  const semiMatch = body.match(/[;；]/);
+  if (semiMatch) {
+    const semiIdx = semiMatch.index;
+    sizeText = body.slice(0, semiIdx).trim();
+    weightText = body.slice(semiIdx + 1).trim();
+  }
+
+  // 无分号、无字段标签时，尝试识别第三个尺寸后直接跟随的明确重量字段。
+  // 例如：挖掘机 15.5cm x 8cm x 12cm 120g
+  if (!semiMatch) {
+    const trailing = splitTrailingWeight(sizeText);
+    if (trailing.matched) {
+      sizeText = trailing.sizeText;
+      weightText = trailing.weightText;
+    }
+  }
+
+  let length = null, width = null, height = null, weightVal = null;
+  let parseIssues = [];
+
+  // 字段名格式优先：length/width/height/weight（以及中文标签）。
+  // 这种格式不依赖 x/×/逗号顺序，因此不会把 width/height/weight 丢失或错位。
+  const labeled = parseLabeledMeasurements(body);
+  if (labeled.matched) {
+    length = labeled.length;
+    width = labeled.width;
+    height = labeled.height;
+    weightVal = labeled.weight;
+
+    // 标签存在但值无法识别时才报解析问题；明确的 ?/*/null 等缺失标记不报错。
+    for (const [key, label, isWeight] of [
+      ['length', '长度', false], ['width', '宽度', false],
+      ['height', '高度', false], ['weight', '重量', true]
+    ]) {
+      if (labeled.present[key] && labeled[key] === null && !isMeasurementMissing(labeled.raw[key], isWeight)) {
+        parseIssues.push(`${label}字段存在但未能识别数值`);
+      }
+    }
+  }
+  // CSV/逗号格式：名称之后按 长、宽、高、重 四个槽位读取，缺失标记保留位置。
+  else if (!semiMatch && !/[x×]/.test(sizeText) && /[,，]/.test(sizeText)) {
+    const fields = sizeText.split(/[,，]/).map(s => s.trim());
+    const dimText = fields.slice(0, 3).join(',');
+    const defaultFactor = getDefaultDimensionFactor(dimText);
+    length = fields.length > 0 ? parseMeasurementToken(fields[0], false, defaultFactor) : null;
+    width  = fields.length > 1 ? parseMeasurementToken(fields[1], false, defaultFactor) : null;
+    height = fields.length > 2 ? parseMeasurementToken(fields[2], false, defaultFactor) : null;
+    weightVal = fields.length > 3 ? parseMeasurementToken(fields[3], true, 1) : null;
+    if (fields.length < 3) parseIssues.push('尺寸字段不足3项');
+  } else {
+    const parsed = parseDimensionSlots(sizeText);
+    [length, width, height] = parsed.dims;
+    if (parsed.partCount < 3) parseIssues.push('尺寸字段不足3项');
+
+    if (weightText) {
+      weightVal = parseMeasurementToken(weightText, true, 1);
+      // 明确的缺失标记属于原始资料缺失，不视为解析错误。
+      if (weightVal === null && !isMeasurementMissing(weightText, true)) parseIssues.push('重量部分存在但未能识别数值');
+    }
+  }
+
+  const sourceMissing = [];
+  if (length === null) sourceMissing.push('长度');
+  if (width === null) sourceMissing.push('宽度');
+  if (height === null) sourceMissing.push('高度');
+  if (weightVal === null) sourceMissing.push('重量');
+
+  return {
+    name, length, width, height, weight: weightVal,
+    rawData: raw, inferred: [], warnings: [], parseIssues: parseIssues,
+    sourceMissing: sourceMissing
+  };
+}
+
+function getProductType(name) {
+  const words = name.split(/\s+/).filter(w =>
+    w.length > 1 && !/^\d/.test(w) && !/^[x×\-]+$/i.test(w)
+  );
+  return words.length > 0 ? words[words.length - 1].toLowerCase() : 'unknown';
+}
+
+function inferMissing(productsList, inferMode) {
+  const byName = new Map();
+  const byType = new Map();
+  const labels = {length:'长度', width:'宽度', height:'高度', weight:'重量'};
+  // 保存推断前的原始解析值，组内均值只使用资料中真实存在的值，避免推断结果层层传播。
+  const originalValues = new WeakMap(productsList.map(p => [p, {
+    length: p.length, width: p.width, height: p.height, weight: p.weight
+  }]));
+
+  for (const p of productsList) {
+    const nameKey = p.name.toLowerCase().trim();
+    if (!byName.has(nameKey)) byName.set(nameKey, []);
+    byName.get(nameKey).push(p);
+
+    const typeKey = getProductType(p.name);
+    if (!byType.has(typeKey)) byType.set(typeKey, []);
+    byType.get(typeKey).push(p);
+  }
+
+  // 全局比例只使用原本已有的完整尺寸样本，避免推断值反过来污染全局基准。
+  const allDims = productsList
+    .filter(p => {
+      const v = originalValues.get(p);
+      return v.length !== null && v.width !== null && v.height !== null;
+    })
+    .map(p => {
+      const v = originalValues.get(p);
+      return [v.length, v.width, v.height];
+    });
+
+  const round2 = n => Math.round(n * 100) / 100;
+  const mean = vals => vals.length ? vals.reduce((a,b) => a + b, 0) / vals.length : null;
+
+  const inferFromGroup = (p, group, sourceLabel) => {
+    for (const attr of ['length','width','height','weight']) {
+      if (p[attr] !== null) continue;
+      const vals = group.map(sp => originalValues.get(sp)[attr]).filter(v => v !== null);
+      if (!vals.length) continue;
+      p[attr] = round2(mean(vals));
+      p.inferred.push(`${labels[attr]}（${sourceLabel}）`);
+    }
+  };
+
+  const inferFromGlobalRatios = p => {
+    if (!allDims.length) return;
+    const ratioWL = mean(allDims.map(d => d[1] / d[0]));
+    const ratioHL = mean(allDims.map(d => d[2] / d[0]));
+
+    // 长度缺失：可由宽度或高度反推。
+    if (p.length === null) {
+      if (p.width !== null && ratioWL) {
+        p.length = round2(p.width / ratioWL);
+        p.inferred.push('长度（全局比例推断）');
+      } else if (p.height !== null && ratioHL) {
+        p.length = round2(p.height / ratioHL);
+        p.inferred.push('长度（全局比例推断）');
+      }
+    }
+    if (p.width === null && p.length !== null && ratioWL) {
+      p.width = round2(p.length * ratioWL);
+      p.inferred.push('宽度（全局比例推断）');
+    }
+    if (p.height === null && p.length !== null && ratioHL) {
+      p.height = round2(p.length * ratioHL);
+      p.inferred.push('高度（全局比例推断）');
+    }
+  };
+
+  for (const p of productsList) {
+    const nameKey = p.name.toLowerCase().trim();
+    const typeKey = getProductType(p.name);
+    const sameName = byName.get(nameKey)?.filter(sp => sp !== p) || [];
+    const sameType = byType.get(typeKey)?.filter(sp => sp !== p) || [];
+
+    if (inferMode === 'exact') {
+      // exact：严格只允许同名称数据补全。
+      inferFromGroup(p, sameName, '同产品均值');
+      continue;
+    }
+
+    if (inferMode === 'global') {
+      // global：严格忽略名称和类型，只使用全局尺寸比例。
+      inferFromGlobalRatios(p);
+      continue;
+    }
+
+    // smart：逐字段三级递进；上一层没有补出的字段才进入下一层。
+    inferFromGroup(p, sameName, '同产品均值');
+    inferFromGroup(p, sameType, `同类型[${typeKey}]均值`);
+    inferFromGlobalRatios(p);
+  }
+}
+
+function validateProduct(p) {
+  const w = [];
+  const vals = [p.length, p.width, p.height].filter(v => v !== null);
+  if (vals.length >= 2) {
+    if (p.length && p.width && p.length < p.width * 0.5) w.push('尺寸比例异常：长度明显小于宽度，请核对');
+    if (p.width && p.height && p.width < p.height * 0.3) w.push('尺寸比例异常：宽度明显小于高度，请核对');
+  }
+  if (p.length !== null && p.length > 500) w.push(`长度过大(${p.length.toFixed(1)}cm)，请确认单位`);
+  if (p.width !== null && p.width > 500) w.push(`宽度过大(${p.width.toFixed(1)}cm)，请确认单位`);
+  if (p.height !== null && p.height > 500) w.push(`高度过大(${p.height.toFixed(1)}cm)，请确认单位`);
+  if (p.weight !== null && p.weight > 50000) w.push(`重量过大(${p.weight.toFixed(1)}g)，请确认单位`);
+  return w;
+}
+
+function fmt(val) {
+  return val === null ? '?' : val.toFixed(2);
+}
+
+function calcTolerance(val, pct) {
+  if (val === null) return [null, null];
+  return [val * (1 - pct), val * (1 + pct)];
+}
+
+function getProductMeta(p) {
+  const missing = [];
+  if (p.length === null) missing.push('长度');
+  if (p.width === null) missing.push('宽度');
+  if (p.height === null) missing.push('高度');
+  if (p.weight === null) missing.push('重量');
+
+  const sourceMissing = Array.isArray(p.sourceMissing) ? p.sourceMissing : missing.slice();
+  const hasInferred = p.inferred.length > 0;
+  const hasWarning = p.warnings.length > 0;
+  const hasParseIssue = p.parseIssues.length > 0;
+  const isComplete = missing.length === 0 && !hasParseIssue;
+
+  return { missing, sourceMissing, hasInferred, hasWarning, hasParseIssue, isComplete };
+}
+
+function renderTags(p, meta) {
+  let html = '';
+  if (meta.isComplete && !meta.hasInferred && !meta.hasWarning && !meta.hasParseIssue && meta.sourceMissing.length === 0) {
+    html += '<span class="badge badge-ok">✅ 数据完整</span>';
+  }
+  if (meta.sourceMissing.length > 0) {
+    html += `<span class="badge badge-missing">❓ 原始资料缺失: ${meta.sourceMissing.join('、')}</span>`;
+  }
+  if (p.parseIssues.length > 0) {
+    for (const issue of p.parseIssues) {
+      html += `<span class="badge badge-error">🚨 ${escapeHtml(issue)}</span>`;
+    }
+  }
+  if (p.inferred.length > 0) {
+    for (const inf of p.inferred) {
+      html += `<span class="badge badge-inferred">💡 ${escapeHtml(inf)}</span>`;
+    }
+  }
+  if (p.warnings.length > 0) {
+    for (const w of p.warnings) {
+      html += `<span class="badge badge-warning">⚠️ ${escapeHtml(w)}</span>`;
+    }
+  }
+  if (meta.missing.length > 0) {
+    html += `<span class="badge badge-missing">❓ 仍缺失: ${meta.missing.join('、')}</span>`;
+  }
+  return html;
+}
+
+function renderEditPanel(i, p) {
+  return `
+  <div id="edit-panel-${i}" class="edit-panel" style="display:none;">
+    <div class="edit-title">✏️ 手动修正数据</div>
+    <div class="edit-grid">
+      <div class="edit-field"><label>长度 (cm)</label><input type="number" step="0.01" id="edit-l-${i}" value="${p.length !== null ? p.length : ''}"></div>
+      <div class="edit-field"><label>宽度 (cm)</label><input type="number" step="0.01" id="edit-w-${i}" value="${p.width !== null ? p.width : ''}"></div>
+      <div class="edit-field"><label>高度 (cm)</label><input type="number" step="0.01" id="edit-h-${i}" value="${p.height !== null ? p.height : ''}"></div>
+      <div class="edit-field"><label>重量 (g)</label><input type="number" step="0.01" id="edit-wt-${i}" value="${p.weight !== null ? p.weight : ''}"></div>
+    </div>
+    <div class="edit-actions">
+      <button class="btn btn-small" onclick="applyEdit(${i})">💾 保存修改</button>
+      <button class="btn btn-small btn-secondary" onclick="toggleEdit(${i})">取消</button>
+    </div>
+  </div>`;
+}
+
+function renderPagination(totalItems, currentPage, totalPages) {
+  if (totalPages <= 1) return '';
+  let html = '<div class="pagination">';
+  html += `<span class="page-info">第 ${currentPage}/${totalPages} 页 (共${totalItems}个)</span>`;
+  html += `<div class="page-btns">`;
+  html += `<button class="btn btn-small btn-secondary" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">上一页</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    const activeClass = i === currentPage ? 'active' : 'btn-secondary';
+    const disabled = i === currentPage ? 'disabled' : '';
+    html += `<button class="btn btn-small ${activeClass}" ${disabled} onclick="changePage(${i})">${i}</button>`;
+  }
+  html += `<button class="btn btn-small btn-secondary" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">下一页</button>`;
+  html += `</div></div>`;
+  return html;
+}
+
+function renderTerminalMode(pctDim, pctWt) {
+  const container = document.getElementById('results');
+  let html = '';
+  const sepLine = '───────────────────────────────────────────────────────';
+
+  if (errorLines.length > 0) {
+    html += `<div class="panel" style="border-color:var(--danger);"><h3>❌ 解析失败 (${errorLines.length}行)</h3>`;
+    for (const e of errorLines) {
+      html += `<div style="color:var(--danger);font-size:0.85rem;margin:4px 0;">第${e.idx}行: ${escapeHtml(e.line.slice(0,80))}</div>`;
+    }
+    html += '</div>';
+  }
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const pageProducts = products.slice(start, end);
+
+  for (let i = 0; i < pageProducts.length; i++) {
+    const globalIdx = start + i;
+    const p = pageProducts[i];
+    const [lMin, lMax] = calcTolerance(p.length, pctDim);
+    const [wMin, wMax] = calcTolerance(p.width, pctDim);
+    const [hMin, hMax] = calcTolerance(p.height, pctDim);
+    const [wtMin, wtMax] = calcTolerance(p.weight, pctWt);
+    const meta = getProductMeta(p);
+
+    const cardClass = meta.hasWarning ? 'warning' : meta.hasInferred ? 'inferred' : '';
+
+    html += `<div class="result-card ${cardClass}" style="animation-delay:${i*0.05}s">`;
+    html += `<div class="line line-name" style="display:flex;justify-content:space-between;align-items:center;">`;
+    html += `<span>[${String(globalIdx+1).padStart(2,'0')}] 📦 ${escapeHtml(p.name)}</span>`;
+    html += `<button class="btn btn-small btn-secondary" onclick="toggleEdit(${globalIdx})">✏️ 修改</button>`;
+    html += `</div>`;
+    html += `<div class="line line-raw">     原始: ${escapeHtml(p.rawData)}</div>`;
+    html += `<div class="line line-sep">${sepLine}</div>`;
+    html += `<div class="line line-label">     尺寸公差 (±${(pctDim*100).toFixed(0)}%):</div>`;
+    html += `<div class="line line-dim">       最小: ${fmt(lMin)} × ${fmt(wMin)} × ${fmt(hMin)} cm</div>`;
+    html += `<div class="line line-dim">       最大: ${fmt(lMax)} × ${fmt(wMax)} × ${fmt(hMax)} cm</div>`;
+    if (p.weight !== null) {
+      html += `<div class="line line-wt">     重量公差 (±${(pctWt*100).toFixed(0)}%): ${fmt(wtMin)} g ~ ${fmt(wtMax)} g</div>`;
+    } else {
+      html += `<div class="line line-missing">     重量公差: ? g ~ ? g</div>`;
+    }
+    html += `<div class="tag-row">${renderTags(p, meta)}</div>`;
+    html += renderEditPanel(globalIdx, p);
+    html += `</div>`;
+  }
+
+  const totalPages = Math.ceil(products.length / PAGE_SIZE);
+  html += renderPagination(products.length, currentPage, totalPages);
+
+  container.innerHTML = html;
+}
+
+function renderCardMode(pctDim, pctWt) {
+  const container = document.getElementById('results');
+  let html = '';
+
+  if (errorLines.length > 0) {
+    html += `<div class="panel" style="border-color:var(--danger);"><h3>❌ 解析失败 (${errorLines.length}行)</h3>`;
+    for (const e of errorLines) {
+      html += `<div style="color:var(--danger);font-size:0.85rem;margin:4px 0;">第${e.idx}行: ${escapeHtml(e.line.slice(0,80))}</div>`;    }
+    html += '</div>';
+  }
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const pageProducts = products.slice(start, end);
+
+  for (let i = 0; i < pageProducts.length; i++) {
+    const globalIdx = start + i;
+    const p = pageProducts[i];
+    const [lMin, lMax] = calcTolerance(p.length, pctDim);
+    const [wMin, wMax] = calcTolerance(p.width, pctDim);
+    const [hMin, hMax] = calcTolerance(p.height, pctDim);
+    const [wtMin, wtMax] = calcTolerance(p.weight, pctWt);
+    const meta = getProductMeta(p);
+
+    const cardClass = meta.hasWarning ? 'warning' : meta.hasInferred ? 'inferred' : '';
+
+    html += `<div class="result-card-v2 ${cardClass}" style="animation-delay:${i*0.05}s">`;
+    html += `<div class="card-header">`;
+    html += `<div>`;
+    html += `<div class="card-title"><span class="icon-box">📦</span>${escapeHtml(p.name)}</div>`;
+    html += `<div class="card-id">#${globalIdx + 1}</div>`;
+    html += `</div>`;
+    html += `<button class="btn btn-small btn-secondary" onclick="toggleEdit(${globalIdx})">✏️ 修改</button>`;
+    html += `</div>`;
+    html += `<div class="card-raw">${escapeHtml(p.rawData)}</div>`;
+
+    html += `<div class="card-fields">`;
+
+    const lenInf = p.inferred.some(s => s.includes('长度'));
+    html += `<div class="field-box ${p.length === null ? 'missing ' : ''}${lenInf ? 'inferred' : ''}">`;
+    html += `<div class="field-label"><span class="dot dot-len"></span>长度</div>`;
+    if (p.length !== null) {
+      html += `<div class="field-value">${fmt(p.length)}<span class="range">(${fmt(lMin)}~${fmt(lMax)} cm)</span></div>`;
+    } else {
+      html += `<div class="field-value missing">?</div>`;
+    }
+    html += `</div>`;
+
+    const widInf = p.inferred.some(s => s.includes('宽度'));
+    html += `<div class="field-box ${p.width === null ? 'missing ' : ''}${widInf ? 'inferred' : ''}">`;
+    html += `<div class="field-label"><span class="dot dot-wid"></span>宽度</div>`;
+    if (p.width !== null) {
+      html += `<div class="field-value">${fmt(p.width)}<span class="range">(${fmt(wMin)}~${fmt(wMax)} cm)</span></div>`;
+    } else {
+      html += `<div class="field-value missing">?</div>`;
+    }
+    html += `</div>`;
+
+    const heiInf = p.inferred.some(s => s.includes('高度'));
+    html += `<div class="field-box ${p.height === null ? 'missing ' : ''}${heiInf ? 'inferred' : ''}">`;
+    html += `<div class="field-label"><span class="dot dot-hei"></span>高度</div>`;
+    if (p.height !== null) {
+      html += `<div class="field-value">${fmt(p.height)}<span class="range">(${fmt(hMin)}~${fmt(hMax)} cm)</span></div>`;
+    } else {
+      html += `<div class="field-value missing">?</div>`;
+    }
+    html += `</div>`;
+
+    const wtInf = p.inferred.some(s => s.includes('重量'));
+    html += `<div class="field-box ${p.weight === null ? 'missing ' : ''}${wtInf ? 'inferred' : ''}">`;
+    html += `<div class="field-label"><span class="dot dot-wt"></span>重量</div>`;
+    if (p.weight !== null) {
+      html += `<div class="field-value">${fmt(p.weight)}<span class="range">(${fmt(wtMin)}~${fmt(wtMax)} g)</span></div>`;
+    } else {
+      html += `<div class="field-value missing">?</div>`;
+    }
+    html += `</div>`;
+
+    html += `</div>`;
+
+    html += `<div class="card-tags">${renderTags(p, meta)}</div>`;
+    html += renderEditPanel(globalIdx, p);
+    html += `</div>`;
+  }
+
+  const totalPages = Math.ceil(products.length / PAGE_SIZE);
+  html += renderPagination(products.length, currentPage, totalPages);
+
+  container.innerHTML = html;
+}
+
+function renderResults(pctDim, pctWt) {
+  const container = document.getElementById('results');
+  const statsPanel = document.getElementById('statsPanel');
+
+  if (products.length === 0 && errorLines.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>暂无结果，请输入数据后点击计算</p></div>';
+    statsPanel.style.display = 'none';
+    document.getElementById('scriptPanel').style.display = 'none';
+    return;
+  }
+
+  statsPanel.style.display = 'block';
+  document.getElementById('statTotal').textContent = products.length;
+  document.getElementById('statInferred').textContent = products.filter(p => p.inferred.length > 0).length;
+  document.getElementById('statMissing').textContent = products.filter(p => {
+    const sourceMissing = Array.isArray(p.sourceMissing)
+      ? p.sourceMissing
+      : [p.length, p.width, p.height, p.weight].filter(v => v === null);
+    return sourceMissing.length > 0;
+  }).length;
+  document.getElementById('statWarning').textContent = products.filter(p => p.warnings.length > 0).length;
+  document.getElementById('statParseIssue').textContent = products.filter(p => p.parseIssues.length > 0).length;
+  document.getElementById('statError').textContent = errorLines.length;
+
+  if (currentMode === 'card') {
+    renderCardMode(pctDim, pctWt);
+  } else {
+    renderTerminalMode(pctDim, pctWt);
+  }
+}
+
+function onModeChange() {
+  currentMode = document.getElementById('displayMode').value;
+  saveState();
+  if (products.length > 0 || errorLines.length > 0) {
+    const pctDim = parseFloat(document.getElementById('tolerancePctDim').value) / 100 || 0.05;
+    const pctWt = parseFloat(document.getElementById('tolerancePctWt').value) / 100 || 0.05;
+    renderResults(pctDim, pctWt);
+  }
+}
+
+function onSettingChange() {
+  saveState();
+}
+
+function changePage(page) {
+  const totalPages = Math.ceil(products.length / PAGE_SIZE);
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  const pctDim = parseFloat(document.getElementById('tolerancePctDim').value) / 100 || 0.05;
+  const pctWt = parseFloat(document.getElementById('tolerancePctWt').value) / 100 || 0.05;
+  renderResults(pctDim, pctWt);
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function setLoading(loading) {
+  const btn = document.getElementById('calcBtn');
+  if (loading) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 计算中...';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = '🚀 开始计算';
+  }
+}
+
+function showToast(message, type) {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'fadeOut 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+}
+
+let inputSaveTimer = null;
+
+function autoResizeInputData() {
+  const el = document.getElementById('inputData');
+  if (!el) return;
+  const maxHeight = Math.min(600, Math.max(240, window.innerHeight * 0.60));
+  el.style.height = 'auto';
+  const targetHeight = Math.max(240, Math.min(el.scrollHeight, maxHeight));
+  el.style.height = targetHeight + 'px';
+  el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+}
+
+function scheduleInputAutoSave() {
+  clearTimeout(inputSaveTimer);
+  inputSaveTimer = setTimeout(() => saveState(), 400);
+}
+
+function updateLineStats() {
+  autoResizeInputData();
+  scheduleInputAutoSave();
+  const text = document.getElementById('inputData').value;
+  const lines = text.split('\n').filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('//'));
+  const el = document.getElementById('lineStats');
+  el.textContent = lines.length > 0 ? `已识别 ${lines.length} 行有效数据` : '';
+  el.style.color = lines.length > 0 ? 'var(--success)' : 'var(--text-dim)';
+}
+
+function saveState() {
+  const state = {
+    inputData: document.getElementById('inputData').value,
+    tolerancePctDim: document.getElementById('tolerancePctDim').value,
+    tolerancePctWt: document.getElementById('tolerancePctWt').value,
+    inferSwitch: document.getElementById('inferSwitch').value,
+    inferMode: document.getElementById('inferMode').value,
+    displayMode: document.getElementById('displayMode').value,
+    keyCode: document.getElementById('keyCode').value,
+    scriptMode: document.getElementById('scriptMode').value,
+    products: products,
+    errorLines: errorLines,
+    currentMode: currentMode,
+    currentPage: currentPage
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {}
+}
+
+function loadState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return;
+  try {
+    const state = JSON.parse(saved);
+    if (state.inputData !== undefined) document.getElementById('inputData').value = state.inputData;
+    if (state.tolerancePctDim !== undefined) document.getElementById('tolerancePctDim').value = state.tolerancePctDim;
+    if (state.tolerancePctWt !== undefined) document.getElementById('tolerancePctWt').value = state.tolerancePctWt;
+    if (state.inferSwitch !== undefined) document.getElementById('inferSwitch').value = state.inferSwitch;
+    if (state.inferMode !== undefined) document.getElementById('inferMode').value = state.inferMode;
+    if (state.displayMode !== undefined) {
+      document.getElementById('displayMode').value = state.displayMode;
+      currentMode = state.displayMode;
+    }
+    if (state.keyCode !== undefined) document.getElementById('keyCode').value = state.keyCode;
+    if (state.scriptMode !== undefined) document.getElementById('scriptMode').value = state.scriptMode;
+    if (state.currentPage !== undefined) currentPage = state.currentPage;
+
+    updateLineStats();
+
+    if (state.products && state.products.length > 0) {
+      products = state.products;
+      errorLines = state.errorLines || [];
+      const pctDim = parseFloat(state.tolerancePctDim || 5) / 100 || 0.05;
+      const pctWt = parseFloat(state.tolerancePctWt || 5) / 100 || 0.05;
+      renderResults(pctDim, pctWt);
+    }
+  } catch (e) {
+    console.error('加载状态失败', e);
+  }
+}
+
+function calculate() {
+  const rawText = document.getElementById('inputData').value.trim();
+  if (!rawText) { showToast('请输入数据', 'warning'); return; }
+
+  setLoading(true);
+
+  setTimeout(() => {
+    try {
+      const lines = rawText.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#') && !l.startsWith('//'));
+      const pctDim = parseFloat(document.getElementById('tolerancePctDim').value) / 100 || 0.05;
+      const pctWt = parseFloat(document.getElementById('tolerancePctWt').value) / 100 || 0.05;
+      const enableInfer = document.getElementById('inferSwitch').value === '1';
+      const inferMode = document.getElementById('inferMode').value;
+
+      products = [];
+      errorLines = [];
+      currentPage = 1;
+
+      for (let i = 0; i < lines.length; i++) {
+        const p = smartParseLine(lines[i]);
+        if (!p || (!p.name && p.length === null && p.width === null && p.height === null && p.weight === null)) {
+          errorLines.push({ idx: i + 1, line: lines[i] });
+        } else {
+          products.push(p);
+        }
+      }
+
+      if (enableInfer) inferMissing(products, inferMode);
+      for (const p of products) { p.warnings = validateProduct(p); }
+
+      saveState();
+      renderResults(pctDim, pctWt);
+      showToast(`计算完成：${products.length} 个产品`, 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('计算出错：' + err.message, 'danger');
+    } finally {
+      setLoading(false);
+    }
+  }, 50);
+}
+
+function toggleEdit(idx) {
+  const panel = document.getElementById('edit-panel-' + idx);
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function applyEdit(idx) {
+  const p = products[idx];
+  const lVal = document.getElementById('edit-l-' + idx).value.trim();
+  const wVal = document.getElementById('edit-w-' + idx).value.trim();
+  const hVal = document.getElementById('edit-h-' + idx).value.trim();
+  const wtVal = document.getElementById('edit-wt-' + idx).value.trim();
+
+  p.length = isMissing(lVal) ? null : (parseFloat(lVal) || null);
+  p.width = isMissing(wVal) ? null : (parseFloat(wVal) || null);
+  p.height = isMissing(hVal) ? null : (parseFloat(hVal) || null);
+  p.weight = isMissing(wtVal) ? null : (parseFloat(wtVal) || null);
+
+  p.inferred = [];
+  p.parseIssues = [];
+  p.warnings = validateProduct(p);
+
+  const pctDim = parseFloat(document.getElementById('tolerancePctDim').value) / 100 || 0.05;
+  const pctWt = parseFloat(document.getElementById('tolerancePctWt').value) / 100 || 0.05;
+
+  saveState();
+  renderResults(pctDim, pctWt);
+  showToast('修改已保存', 'success');
+}
+
+function exportCSV() {
+  if (products.length === 0) return;
+  const pctDim = parseFloat(document.getElementById('tolerancePctDim').value) / 100 || 0.05;
+  const pctWt = parseFloat(document.getElementById('tolerancePctWt').value) / 100 || 0.05;
+  let csv = '\uFEFF序号,名称,原始数据,长度,长度最小,长度最大,宽度,宽度最小,宽度最大,高度,高度最小,高度最大,重量,重量最小,重量最大,推断字段,原始资料缺失,质量警告,解析问题,仍缺失\n';
+  for (let i = 0; i < products.length; i++) {
+    const p = products[i];
+    const [lMin, lMax] = calcTolerance(p.length, pctDim);
+    const [wMin, wMax] = calcTolerance(p.width, pctDim);
+    const [hMin, hMax] = calcTolerance(p.height, pctDim);
+    const [wtMin, wtMax] = calcTolerance(p.weight, pctWt);
+    const missing = [];
+    if (p.length === null) missing.push('长度');
+    if (p.width === null) missing.push('宽度');
+    if (p.height === null) missing.push('高度');
+    if (p.weight === null) missing.push('重量');
+    const sourceMissing = Array.isArray(p.sourceMissing) ? p.sourceMissing : missing;
+    csv += (i+1) + ',"' + p.name + '","' + p.rawData + '",' + fmt(p.length) + ',' + fmt(lMin) + ',' + fmt(lMax) + ',' + fmt(p.width) + ',' + fmt(wMin) + ',' + fmt(wMax) + ',' + fmt(p.height) + ',' + fmt(hMin) + ',' + fmt(hMax) + ',' + fmt(p.weight) + ',' + fmt(wtMin) + ',' + fmt(wtMax) + ',"' + p.inferred.join(';') + '","' + sourceMissing.join(';') + '","' + p.warnings.join(';') + '","' + p.parseIssues.join(';') + '","' + missing.join(';') + '"\n';
+  }
+  downloadFile(csv, 'tolerance_result_' + timestamp() + '.csv', 'text/csv;charset=utf-8;');
+  showToast('CSV 导出成功', 'success');
+}
+
+function exportJSON() {
+  if (products.length === 0) return;
+  const pctDim = parseFloat(document.getElementById('tolerancePctDim').value) / 100 || 0.05;
+  const pctWt = parseFloat(document.getElementById('tolerancePctWt').value) / 100 || 0.05;
+  const data = {
+    meta: { generatedAt: new Date().toISOString(), tolerancePctDim: pctDim * 100, tolerancePctWt: pctWt * 100, count: products.length },
+    products: products
+  };
+  downloadFile(JSON.stringify(data, null, 2), 'tolerance_result_' + timestamp() + '.json', 'application/json');
+  showToast('JSON 导出成功', 'success');
+}
+
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function timestamp() {
+  const d = new Date();
+  return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '_' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0') + String(d.getSeconds()).padStart(2,'0');
+}
+
+function loadExample() {
+  document.getElementById('inputData').value = `Fire Truck: 7.6 x 2.7 x 4.1cm; 31.6g
+Police Car,7.2,2.8,2.9,26.6
+Tow Truck: 6.7 x ? x 3cm; ?g
+Ambulance: length 8.5 width 3.2 height 4.0 weight 55g
+挖掘机 15.5cm x 8cm x 12cm 120g
+Fire Truck: 7.5 x 2.6 x 4.0cm; 30g
+# 这是注释行，会被自动跳过
+Toy Boat: 12inch x 5inch x 4inch; 2.5lb
+Green Exotic Supercar: 7.1 x 2.9 x 1.9cm; 15.1g
+Lime Yellow Open Top Racer: 7.2 x 1.9cm; 17.1g`;
+  updateLineStats();
+  saveState();
+}
+
+function loadExample4() {
+  document.getElementById('inputData').value = `Skid Steer Loader: 14 x 5.7 x 6.5cm; 65.6g
+Forklift: 12.5 x 5.2 x 8.0cm; 82.3g
+Dump Truck: 18.2 x 6.8 x 7.5cm; 125.0g
+Bulldozer: 16.0 x 7.5 x 6.8cm; 98.5g`;
+  updateLineStats();
+  saveState();
+}
+
+function clearAll() {
+  document.getElementById('inputData').value = '';
+  document.getElementById('results').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>暂无结果，请输入数据后点击计算</p></div>';
+  document.getElementById('statsPanel').style.display = 'none';
+  document.getElementById('scriptPanel').style.display = 'none';
+  document.getElementById('lineStats').textContent = '';
+  products = [];
+  errorLines = [];
+  currentPage = 1;
+  localStorage.removeItem(STORAGE_KEY);
+  showToast('已清空所有数据', 'info');
+}
+
+function fmtDimScript(a, b, c) {
+  const fmt = v => v === null ? '?' : v.toFixed(2).replace(/\.00$/, '');
+  return [a, b, c].map(fmt).join(' x ');
+}
+
+function fmtWtScript(v) {
+  if (v === null) return '';
+  return v.toFixed(2).replace(/\.00$/, '');
+}
+
+async function showScriptPanel() {
+  if (products.length === 0) { showToast('请先计算数据', 'warning'); return; }
+  const pctDim = parseFloat(document.getElementById('tolerancePctDim').value) / 100 || 0.05;
+  const pctWt = parseFloat(document.getElementById('tolerancePctWt').value) / 100 || 0.05;
+  const keyCode = document.getElementById('keyCode').value.trim() || '6058693';
+  const scriptMode = document.getElementById('scriptMode').value;
+
+  const rows = [];
+  for (const p of products) {
+    const emptySamples = Array(13).fill('');
+    if (scriptMode === 'dim4') {
+      if (p.length !== null) {
+        const [lMin, lMax] = calcTolerance(p.length, pctDim);
+        rows.push({ keyCode: keyCode, data: p.name + ' Length', claimed: '--', spec: fmtWtScript(p.length), min: fmtWtScript(lMin), max: fmtWtScript(lMax), unit: 'cm', approval: '', samples: emptySamples.slice() });
+      }
+      if (p.width !== null) {
+        const [wMin, wMax] = calcTolerance(p.width, pctDim);
+        rows.push({ keyCode: keyCode, data: p.name + ' Width', claimed: '--', spec: fmtWtScript(p.width), min: fmtWtScript(wMin), max: fmtWtScript(wMax), unit: 'cm', approval: '', samples: emptySamples.slice() });
+      }
+      if (p.height !== null) {
+        const [hMin, hMax] = calcTolerance(p.height, pctDim);
+        rows.push({ keyCode: keyCode, data: p.name + ' Height', claimed: '--', spec: fmtWtScript(p.height), min: fmtWtScript(hMin), max: fmtWtScript(hMax), unit: 'cm', approval: '', samples: emptySamples.slice() });
+      }
+      if (p.weight !== null) {
+        const [wtMin, wtMax] = calcTolerance(p.weight, pctWt);
+        rows.push({ keyCode: keyCode, data: p.name + ' Weight', claimed: '--', spec: fmtWtScript(p.weight), min: fmtWtScript(wtMin), max: fmtWtScript(wtMax), unit: 'g', approval: '', samples: emptySamples.slice() });
+      }
+    } else {
+      if (p.length !== null || p.width !== null || p.height !== null) {
+        const [lMin, lMax] = calcTolerance(p.length, pctDim);
+        const [wMin, wMax] = calcTolerance(p.width, pctDim);
+        const [hMin, hMax] = calcTolerance(p.height, pctDim);
+        rows.push({ keyCode: keyCode, data: 'Size of ' + p.name, claimed: '--', spec: fmtDimScript(p.length, p.width, p.height), min: fmtDimScript(lMin, wMin, hMin), max: fmtDimScript(lMax, wMax, hMax), unit: 'cm', approval: '', samples: emptySamples.slice() });
+      }
+      if (p.weight !== null) {
+        const [wtMin, wtMax] = calcTolerance(p.weight, pctWt);
+        rows.push({ keyCode: keyCode, data: 'weight of ' + p.name, claimed: '--', spec: fmtWtScript(p.weight), min: fmtWtScript(wtMin), max: fmtWtScript(wtMax), unit: 'g', approval: '', samples: emptySamples.slice() });
+      }
+    }
+  }
+
+  const runModeEl = document.getElementById('scriptRunMode');
+  const runMode = runModeEl ? runModeEl.value : 'embedded';
+  let script;
+  try {
+    script = runMode === 'json'
+      ? buildJsonImporterScript(rows)
+      : await buildEmbeddedInjectorScript(rows);
+  } catch (err) {
+    showToast(err && err.message ? err.message : '在线授权或脚本生成失败', 'warning');
+    return;
+  }
+  lastScript = script;
+  document.getElementById('scriptPre').textContent = script;
+  document.getElementById('scriptPanel').style.display = 'block';
+  document.getElementById('scriptPanel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideScriptPanel() {
+  document.getElementById('scriptPanel').style.display = 'none';
+}
+
+
+async function buildEmbeddedInjectorScript(rows) {
+  const auth = await ensureValidLicense();
+  if (!auth) throw new Error('授权无效，请先激活或重新验证授权。');
+
+  const keyCode = document.getElementById('keyCode').value.trim();
+  const scriptMode = document.getElementById('scriptMode').value;
+  const response = await fetch(LICENSE_API_BASE + '/api/generate-script', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token: getLicenseToken(),
+      installationId: getInstallationId(),
+      keyCode,
+      mode: scriptMode,
+      rows
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.ok || !data.script) {
+    if (response.status === 401 || response.status === 403) clearLicenseToken();
+    throw new Error(licenseErrorText(data.error || 'generate_script_failed'));
+  }
+  return data.script;
+}
+
+function buildJsonImporterScript(rows) {
+  const keyCode = document.getElementById('keyCode').value.trim();
+  const scriptMode = document.getElementById('scriptMode').value;
+  const configJson = JSON.stringify({ keyCode: keyCode, mode: scriptMode });
+
+  return `(async function() {
+  "use strict";
+
+  var CONFIG = ${configJson};
+  var MODE_NAME = CONFIG.mode === "dim4" ? "每产品4行" : "每产品2行";
+
+  function sleep(ms) {
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
+  }
+
+  function setNativeValue(element, value) {
+    if (!element || element.type === "file") return;
+    var proto = Object.getPrototypeOf(element);
+    var descriptor = Object.getOwnPropertyDescriptor(proto, "value");
+    if (descriptor && descriptor.set) descriptor.set.call(element, value == null ? "" : String(value));
+    else element.value = value == null ? "" : String(value);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function fmt(v) {
+    if (v === null || v === undefined || v === "" || !Number.isFinite(Number(v))) return "";
+    return Number(v).toFixed(2);
+  }
+
+  function calcTol(v, pct) {
+    if (v === null || v === undefined || v === "" || !Number.isFinite(Number(v))) return ["", ""];
+    v = Number(v);
+    return [fmt(v * (1 - pct)), fmt(v * (1 + pct))];
+  }
+
+  function fmtDims(a, b, c) {
+    return [a, b, c].map(function(v) {
+      return (v === null || v === undefined || v === "" || !Number.isFinite(Number(v))) ? "?" : fmt(v);
+    }).join(" x ");
+  }
+
+  function normalizeJson(obj) {
+    if (Array.isArray(obj)) return { meta: {}, products: obj };
+    if (obj && Array.isArray(obj.products)) return obj;
+    throw new Error("JSON 格式不正确：未找到 products 数组。请使用智能公差计算器导出的 JSON。");
+  }
+
+  function buildRows(json) {
+    var products = json.products || [];
+    var meta = json.meta || {};
+    var pctDim = Number(meta.tolerancePctDim);
+    var pctWt = Number(meta.tolerancePctWt);
+    if (!Number.isFinite(pctDim)) pctDim = 5;
+    if (!Number.isFinite(pctWt)) pctWt = 5;
+    pctDim /= 100;
+    pctWt /= 100;
+
+    var rows = [];
+    products.forEach(function(p) {
+      var name = String(p.name || "").trim();
+      if (!name) return;
+
+      if (CONFIG.mode === "dim4") {
+        [
+          ["Length", p.length, "cm", pctDim],
+          ["Width", p.width, "cm", pctDim],
+          ["Height", p.height, "cm", pctDim],
+          ["Weight", p.weight, "g", pctWt]
+        ].forEach(function(item) {
+          if (item[1] === null || item[1] === undefined || !Number.isFinite(Number(item[1]))) return;
+          var range = calcTol(item[1], item[3]);
+          rows.push({
+            keyCode: CONFIG.keyCode,
+            data: name + " " + item[0],
+            claimed: "--",
+            spec: fmt(item[1]),
+            min: range[0],
+            max: range[1],
+            unit: item[2],
+            approval: ""
+          });
+        });
+      } else {
+        if ([p.length, p.width, p.height].some(function(v) { return v !== null && v !== undefined && Number.isFinite(Number(v)); })) {
+          var lr = calcTol(p.length, pctDim), wr = calcTol(p.width, pctDim), hr = calcTol(p.height, pctDim);
+          rows.push({
+            keyCode: CONFIG.keyCode,
+            data: "Size of " + name,
+            claimed: "--",
+            spec: fmtDims(p.length, p.width, p.height),
+            min: fmtDims(lr[0], wr[0], hr[0]),
+            max: fmtDims(lr[1], wr[1], hr[1]),
+            unit: "cm",
+            approval: ""
+          });
+        }
+        if (p.weight !== null && p.weight !== undefined && Number.isFinite(Number(p.weight))) {
+          var wtr = calcTol(p.weight, pctWt);
+          rows.push({
+            keyCode: CONFIG.keyCode,
+            data: "weight of " + name,
+            claimed: "--",
+            spec: fmt(p.weight),
+            min: wtr[0],
+            max: wtr[1],
+            unit: "g",
+            approval: ""
+          });
+        }
+      }
+    });
+    return rows;
+  }
+
+  function chooseJsonFile() {
+    return new Promise(function(resolve, reject) {
+      var input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json,application/json";
+      input.style.display = "none";
+      document.body.appendChild(input);
+      input.addEventListener("change", function() {
+        var file = input.files && input.files[0];
+        input.remove();
+        if (!file) return reject(new Error("未选择 JSON 文件。"));
+        var reader = new FileReader();
+        reader.onload = function() {
+          try { resolve(JSON.parse(reader.result)); }
+          catch (e) { reject(new Error("JSON 读取失败：" + e.message)); }
+        };
+        reader.onerror = function() { reject(new Error("无法读取 JSON 文件。")); };
+        reader.readAsText(file, "UTF-8");
+      }, { once: true });
+      input.click();
+    });
+  }
+
+  function getMeasurementContainer() {
+    var candidates = Array.from(document.querySelectorAll('tbody.dynamic-lines[data-model^="measurement-chart-"], tbody[id$="-measurement-chart-lines-container"]'));
+    if (candidates.length === 1) return candidates[0];
+    var visible = candidates.filter(function(el) { return el.offsetParent !== null; });
+    if (visible.length === 1) return visible[0];
+    if (visible.length > 1) {
+      console.warn("找到多个可见 Measurement Chart，默认使用第一个。", visible);
+      return visible[0];
+    }
+    if (candidates.length) return candidates[0];
+    throw new Error("找不到 Measurement Chart 动态行容器。");
+  }
+
+  function getAddButton(container) {
+    var selector = 'a.add-row[href="#' + CSS.escape(container.id) + '"]';
+    var btn = document.querySelector(selector);
+    if (!btn) {
+      btn = Array.from(document.querySelectorAll("a.add-row")).find(function(a) {
+        return a.getAttribute("href") === "#" + container.id;
+      });
+    }
+    if (!btn) throw new Error('找不到 Measurement Chart 的 "+ Add a line" 按钮。');
+    return btn;
+  }
+
+  function getRows(container) {
+    return Array.from(container.children).filter(function(el) {
+      return el.tagName === "TR" && el.querySelector('[data-field="data"]');
+    });
+  }
+
+  async function ensureRows(container, required) {
+    var addBtn = getAddButton(container);
+    var guard = 0;
+    while (getRows(container).length < required) {
+      var before = getRows(container).length;
+      addBtn.click();
+      var changed = false;
+      for (var i = 0; i < 30; i++) {
+        await sleep(100);
+        if (getRows(container).length > before) { changed = true; break; }
+      }
+      if (!changed) throw new Error("点击 Add a line 后未检测到新行，请检查页面是否允许增加行。");
+      guard++;
+      if (guard > required + 10) throw new Error("自动增加行异常，已停止。");
+    }
+  }
+
+  function findEmptyRows(container) {
+    return getRows(container).filter(function(tr) {
+      var data = tr.querySelector('[data-field="data"]');
+      return data && (!data.value || data.value.trim() === "" || data.value.trim() === "--");
+    });
+  }
+
+  function setProduct(select, keyCode) {
+    if (!select) return { ok: false, reason: "缺少 product 下拉框" };
+    var wanted = String(keyCode || "").trim();
+    var opts = Array.from(select.options);
+    var target = null;
+    if (wanted) {
+      target = opts.find(function(o) {
+        return String(o.value).trim() === wanted || String(o.textContent).trim() === wanted;
+      });
+    }
+    if (!target) {
+      var nonEmpty = opts.filter(function(o) { return String(o.value).trim() !== ""; });
+      if (nonEmpty.length === 1) {
+        target = nonEmpty[0];
+        console.warn("KeyCode " + wanted + " 未匹配；页面只有一个产品选项，自动选择：" + target.textContent.trim());
+      }
+    }
+    if (!target) return { ok: false, reason: "KeyCode 未找到：" + wanted };
+    select.value = target.value;
+    select.dispatchEvent(new Event("input", { bubbles: true }));
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    return { ok: true };
+  }
+
+  function fillField(tr, fieldName, value) {
+    var el = tr.querySelector('[data-field="' + fieldName + '"]');
+    if (el) setNativeValue(el, value);
+    return !!el;
+  }
+
+  function fillRow(tr, row) {
+    var productResult = setProduct(tr.querySelector('select[data-field="product"]'), row.keyCode);
+    if (!productResult.ok) throw new Error(productResult.reason);
+
+    fillField(tr, "data", row.data);
+    fillField(tr, "claimed", row.claimed);
+    fillField(tr, "spec", row.spec);
+    fillField(tr, "min", row.min);
+    fillField(tr, "max", row.max);
+    fillField(tr, "unit", row.unit);
+    fillField(tr, "approval-sample", row.approval);
+
+    for (var n = 1; n <= 13; n++) {
+      fillField(tr, "sample-" + n, n >= 6 ? "--" : "");
+    }
+  }
+
+  try {
+    console.log("Measurement Chart JSON importer started — " + MODE_NAME);
+    var rawJson = await chooseJsonFile();
+    var json = normalizeJson(rawJson);
+    var rows = buildRows(json);
+
+    if (!rows.length) throw new Error("JSON 中没有可填充的有效产品数据。");
+
+    var container = getMeasurementContainer();
+    var emptyBefore = findEmptyRows(container).length;
+    var needAdd = Math.max(0, rows.length - emptyBefore);
+
+    console.log("需要填充：" + rows.length + " 行；当前空白行：" + emptyBefore + "；需自动增加：" + needAdd + " 行。");
+
+    if (needAdd > 0) {
+      await ensureRows(container, getRows(container).length + needAdd);
+    }
+
+    var targets = findEmptyRows(container);
+    if (targets.length < rows.length) throw new Error("自动增加行后仍没有足够空白行。");
+
+    for (var i = 0; i < rows.length; i++) {
+      fillRow(targets[i], rows[i]);
+      if ((i + 1) % 5 === 0) await sleep(30);
+    }
+
+    console.log("完成：" + rows.length + " 行。Samples #1–#5 留空，#6–#13 = --");
+    alert("Measurement Chart 自动填充完成！\\n\\n模式：" + MODE_NAME + "\\n填充：" + rows.length + " 行\\n自动新增：" + needAdd + " 行\\nSamples #6–#13：--\\n\\n请核对后再保存。");
+  } catch (err) {
+    console.error(err);
+    alert("自动填充停止：\\n" + (err && err.message ? err.message : err));
+  }
+})();`;
+}
+function copyScript() {
+  if (!lastScript) return;
+  navigator.clipboard.writeText(lastScript).then(() => {
+    showToast('✅ 脚本已复制到剪贴板！', 'success');
+  }).catch(() => {
+    showToast('复制失败，请手动复制', 'danger');
+  });
+}
+
+function downloadScript() {
+  if (!lastScript) return;
+  const blob = new Blob([lastScript], { type: 'application/javascript' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'auto_fill_' + timestamp() + '.js';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('脚本已下载', 'success');
+}
+
+window.onload = function() {
+  document.getElementById('results').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>暂无结果，请输入数据后点击计算</p></div>';
+  loadState();
+
+  document.getElementById('inputData').addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      calculate();
+    }
+  });
+
+  document.getElementById('inputData').addEventListener('input', updateLineStats);
+  window.addEventListener('resize', autoResizeInputData);
+  autoResizeInputData();
+};
+
+// ===== v7.1 在线授权客户端 =====
+const LICENSE_API_BASE = 'https://tolerance-license-server.vercel.app';
+const LICENSE_INSTALLATION_KEY = 'tolerance_v71_installation_id';
+const LICENSE_TOKEN_KEY = 'tolerance_v71_license_token';
+
+function randomInstallationId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+function getInstallationId() {
+  let id = localStorage.getItem(LICENSE_INSTALLATION_KEY);
+  if (!id) {
+    id = randomInstallationId();
+    localStorage.setItem(LICENSE_INSTALLATION_KEY, id);
+  }
+  return id;
+}
+function getLicenseToken() { return localStorage.getItem(LICENSE_TOKEN_KEY) || ''; }
+function setLicenseToken(token) { localStorage.setItem(LICENSE_TOKEN_KEY, token); }
+function clearLicenseToken() { localStorage.removeItem(LICENSE_TOKEN_KEY); }
+function setLicenseStatus(text, kind) {
+  const el = document.getElementById('licenseStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'auth-status ' + (kind || 'wait');
+}
+function licenseErrorText(code) {
+  const map = {
+    invalid_license: '授权码无效',
+    revoked: '授权已撤销',
+    paused: '授权已暂停',
+    expired: '授权已过期',
+    device_limit_reached: '已达到授权设备数量上限',
+    invalid_or_expired_token: '授权会话已过期，请重新输入授权码激活',
+    device_mismatch: '授权与当前安装不匹配',
+    license_or_device_revoked: '授权或当前设备已被撤销',
+    activation_failed: '授权服务器激活失败',
+    verification_failed: '授权服务器验证失败',
+    generate_script_failed: '服务器生成执行脚本失败'
+  };
+  return map[code] || ('授权失败：' + code);
+}
+async function activateLicense() {
+  const input = document.getElementById('licenseCodeInput');
+  const code = input ? input.value.trim() : '';
+  if (!code) { setLicenseStatus('请输入授权码。', 'bad'); return false; }
+  setLicenseStatus('正在连接授权服务器…', 'wait');
+  try {
+    const r = await fetch(LICENSE_API_BASE + '/api/license/activate', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ licenseCode: code, installationId: getInstallationId(), deviceLabel: navigator.userAgent.slice(0, 120) })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) {
+      clearLicenseToken();
+      setLicenseStatus(licenseErrorText(data.error || 'activation_failed'), 'bad');
+      return false;
+    }
+    setLicenseToken(data.token);
+    if (input) input.value = '';
+    setLicenseStatus('✅ 授权有效；完整执行脚本功能已解锁。', 'ok');
+    return true;
+  } catch {
+    setLicenseStatus('无法连接授权服务器，请检查网络后重试。', 'bad');
+    return false;
+  }
+}
+async function ensureValidLicense() {
+  const token = getLicenseToken();
+  if (!token) { setLicenseStatus('未激活。请输入授权码。', 'bad'); return false; }
+  try {
+    const r = await fetch(LICENSE_API_BASE + '/api/license/verify', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ token, installationId: getInstallationId() })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) {
+      clearLicenseToken();
+      setLicenseStatus(licenseErrorText(data.error || 'verification_failed'), 'bad');
+      return false;
+    }
+    if (data.token) setLicenseToken(data.token);
+    setLicenseStatus('✅ 授权有效；完整执行脚本功能已解锁。', 'ok');
+    return true;
+  } catch {
+    setLicenseStatus('无法连接授权服务器；在线受保护功能暂不可用。', 'bad');
+    return false;
+  }
+}
+window.addEventListener('DOMContentLoaded', () => { getInstallationId(); void ensureValidLicense(); });
+// ===== v7.1 在线授权客户端结束 =====
+
+</script>
+</body>
+</html>
