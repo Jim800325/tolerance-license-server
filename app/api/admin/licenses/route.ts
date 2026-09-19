@@ -7,19 +7,28 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   if (!(await isAdmin())) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
-  const sql = getDb();
-  const rows = await sql`
-    SELECT l.id, l.license_prefix, l.license_code_encrypted, l.customer_note, l.status, l.expires_at, l.max_devices,
-           l.features, l.created_at, l.updated_at,
-           COUNT(d.id) FILTER (WHERE d.revoked_at IS NULL)::int AS active_devices
-    FROM licenses l LEFT JOIN license_devices d ON d.license_id = l.id
-    GROUP BY l.id ORDER BY l.created_at DESC
-  `;
-  const licenses = rows.map(({ license_code_encrypted, ...row }) => ({
-    ...row,
-    license_code: license_code_encrypted ? decryptLicenseCode(String(license_code_encrypted)) : null,
-  }));
-  return NextResponse.json({ ok: true, licenses });
+  try {
+    const sql = getDb();
+    await sql`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS license_code_encrypted TEXT`;
+    const rows = await sql`
+      SELECT l.id, l.license_prefix, l.license_code_encrypted, l.customer_note, l.status, l.expires_at, l.max_devices,
+             l.features, l.created_at, l.updated_at,
+             COUNT(d.id) FILTER (WHERE d.revoked_at IS NULL)::int AS active_devices
+      FROM licenses l LEFT JOIN license_devices d ON d.license_id = l.id
+      GROUP BY l.id ORDER BY l.created_at DESC
+    `;
+    const licenses = rows.map(({ license_code_encrypted, ...row }) => {
+      let license_code: string | null = null;
+      if (license_code_encrypted) {
+        try { license_code = decryptLicenseCode(String(license_code_encrypted)); } catch { license_code = null; }
+      }
+      return { ...row, license_code };
+    });
+    return NextResponse.json({ ok: true, licenses });
+  } catch (error) {
+    console.error('List licenses failed', error);
+    return NextResponse.json({ ok: false, error: 'list_failed' }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -32,9 +41,9 @@ export async function POST(request: NextRequest) {
     const expiresAt = body?.expiresAt ? new Date(body.expiresAt) : null;
     if (expiresAt && Number.isNaN(expiresAt.getTime()))
       return NextResponse.json({ ok: false, error: 'invalid_expiry' }, { status: 400 });
-
     const code = generateLicenseCode();
     const sql = getDb();
+    await sql`ALTER TABLE licenses ADD COLUMN IF NOT EXISTS license_code_encrypted TEXT`;
     const inserted = await sql`
       INSERT INTO licenses (license_hash, license_prefix, license_code_encrypted, customer_note, expires_at, max_devices)
       VALUES (${hashLicenseCode(code)}, ${getLicensePrefix(code)}, ${encryptLicenseCode(code)},
