@@ -22,6 +22,10 @@ export function hashLicenseCode(code: string) {
   return createHmac('sha256', pepper()).update(normalizeLicenseCode(code)).digest('hex');
 }
 
+export function hashInstallationId(installationId: string) {
+  return createHmac('sha256', pepper()).update('installation:').update(installationId.trim()).digest('hex');
+}
+
 export function getLicensePrefix(code: string) {
   return normalizeLicenseCode(code).slice(0, 6);
 }
