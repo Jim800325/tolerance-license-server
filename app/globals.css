@@ -19,6 +19,9 @@ p { line-height: 1.7; }
 .adminForm { display:grid; gap:14px; padding:20px; margin:20px 0; background:#10243a; border-radius:14px; }
 .adminForm label { display:grid; gap:7px; color:#c7d5e8; }
 .adminForm input { width:100%; padding:11px 12px; color:#fff; background:#071522; border:1px solid #365171; border-radius:9px; }
+.adminForm .checkboxLabel { display:flex; align-items:center; gap:9px; width:max-content; max-width:100%; }
+.adminForm .checkboxLabel input[type="checkbox"] { width:18px; height:18px; margin:0; padding:0; flex:0 0 18px; accent-color:#2f73b7; }
+.adminForm .checkboxLabel span { line-height:18px; }
 button { border:0; border-radius:9px; padding:10px 14px; cursor:pointer; background:#2f73b7; color:white; }
 button.secondary { background:#294057; }
 button.danger { background:#8a3541; }
