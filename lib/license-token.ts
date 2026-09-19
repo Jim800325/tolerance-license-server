@@ -17,7 +17,9 @@ function sign(encoded: string) {
   return createHmac('sha256', secret()).update('license-token:').update(encoded).digest('base64url');
 }
 
-export function createLicenseToken(licenseId: string, installationHash: string, ttlSeconds = 15 * 60) {
+export const LICENSE_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+export function createLicenseToken(licenseId: string, installationHash: string, ttlSeconds = LICENSE_TOKEN_TTL_SECONDS) {
   const payload: LicenseTokenPayload = {
     v: 1,
     licenseId,
