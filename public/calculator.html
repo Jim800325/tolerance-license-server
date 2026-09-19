@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🤖 智能公差计算器 v7.1 — 双模式脚本生成</title>
+<title>🤖 智能公差计算器 v7.2 — 双模式脚本生成</title>
 <style>
 :root {
   --bg: #0f172a; --card: #1e293b; --card-hover: #334155;
@@ -256,12 +256,12 @@ header p { color: var(--text-dim); margin-top: 8px; font-size: 0.9rem; }
 <div class="container">
 
 <header>
-  <h1><span class="title-emoji">🤖</span> 智能公差计算器 v7.1</h1>
+  <h1><span class="title-emoji">🤖</span> 智能公差计算器 v7.2</h1>
   <p>双模式脚本生成 · 终端/卡片风格 · 尺寸/重量公差独立设置 · 智能推断分组</p>
 </header>
 
 <div class="panel auth-panel">
-  <h3>🔐 在线授权 · v7.1</h3>
+  <h3>🔐 在线授权 · v7.2</h3>
   <div class="auth-grid">
     <label>授权码
       <input id="licenseCodeInput" type="password" autocomplete="off" placeholder="TC-XXXX-XXXX-XXXX-XXXX">
@@ -1813,7 +1813,7 @@ window.onload = function() {
   autoResizeInputData();
 };
 
-// ===== v7.1 在线授权客户端 =====
+// ===== v7.2 在线授权客户端 =====
 const LICENSE_API_BASE = 'https://tolerance-license-server.vercel.app';
 const LICENSE_INSTALLATION_KEY = 'tolerance_v71_installation_id';
 const LICENSE_TOKEN_KEY = 'tolerance_v71_license_token';
@@ -1907,7 +1907,7 @@ async function ensureValidLicense() {
   }
 }
 window.addEventListener('DOMContentLoaded', () => { getInstallationId(); void ensureValidLicense(); });
-// ===== v7.1 在线授权客户端结束 =====
+// ===== v7.2 在线授权客户端结束 =====
 
 </script>
 </body>
