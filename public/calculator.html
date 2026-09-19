@@ -1490,8 +1490,14 @@ async function buildEmbeddedInjectorScript(rows) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data.ok || !data.script) {
-    if (response.status === 401 || response.status === 403) clearLicenseToken();
-    throw new Error(licenseErrorText(data.error || 'generate_script_failed'));
+    const errorCode = data.error || 'generate_script_failed';
+    // 功能权限不足不等于授权失效：保留 token，管理员重新开启后无需再次授权。
+    if (response.status === 403 && errorCode === 'feature_not_enabled') {
+      throw new Error('当前授权未开通完整执行脚本功能，请联系管理员开通。');
+    }
+    // 只有认证凭据本身无效时才清除本地 token。
+    if (response.status === 401) clearLicenseToken();
+    throw new Error(licenseErrorText(errorCode));
   }
   return data.script;
 }
