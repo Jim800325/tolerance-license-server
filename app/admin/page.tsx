@@ -6,7 +6,7 @@ export default function AdminPage() {
       <section className="card adminCard">
         <div className="badge">v7.0 · Authorization Admin</div>
         <h1>授权管理后台</h1>
-        <p className="muted">完整授权码只在创建时返回一次；数据库仅保存 HMAC 哈希和前缀。</p>
+        <p className="muted">新授权码会加密保存，管理员登录后可随时查看、暂停、恢复、撤销、重置设备或永久删除。</p>
         <AdminClient />
         <div className="links"><a href="/">返回状态页</a></div>
       </section>
