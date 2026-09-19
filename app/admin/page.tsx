@@ -1,11 +1,13 @@
+import AdminClient from './AdminClient';
+
 export default function AdminPage() {
   return (
     <main className="shell">
-      <section className="card">
-        <div className="badge">Admin · Phase 1</div>
+      <section className="card adminCard">
+        <div className="badge">v7.0 · Authorization Admin</div>
         <h1>授权管理后台</h1>
-        <p>后台基础路由已经部署成功。</p>
-        <p className="muted">下一阶段连接 Neon Postgres 后，再加入登录、授权生成、有效期、设备数量、撤销和设备重置。</p>
+        <p className="muted">完整授权码只在创建时返回一次；数据库仅保存 HMAC 哈希和前缀。</p>
+        <AdminClient />
         <div className="links"><a href="/">返回状态页</a></div>
       </section>
     </main>
